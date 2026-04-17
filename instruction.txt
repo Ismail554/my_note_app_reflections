@@ -1,0 +1,17 @@
+Create a Notes flutter project that will store notes as description in an online database and render the data when needed. Description will be only text, no images.
+
+
+Pages -
+1. Splash Screen: Show a Splash Screen when app is loaded first time only.
+2. Login Page: Create a simple login page with email and password.
+3. Registration Page: Create a simple registration page with email, password and name.
+4. Home Page: Show all the list of notes that has been created, keep a floating button for navigating to Add Notes Page.
+5. Add Notes: Here take information's of Title and Description for creating a note.
+
+Instruction
+1. You can use Firebase or any Online Database for storing the notes.
+2. Must use Get for state management.
+3. Use Go_Router package for navigation.
+4. Use a clean project architecture in the project.
+
+Design link: https://stitch.withgoogle.com/projects/740691820336862884
