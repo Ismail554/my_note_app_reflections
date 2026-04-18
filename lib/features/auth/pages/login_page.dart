@@ -132,8 +132,7 @@ class LoginPage extends StatelessWidget {
                                     size: 20.r,
                                   ),
                                 ),
-
-                                SizedBox(width: 14.w),
+                                AppSpacing.w14,
                               ],
                             ),
                           ),

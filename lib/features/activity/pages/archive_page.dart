@@ -1,3 +1,4 @@
+import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -26,7 +27,7 @@ class ArchivePage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Archive', style: AppFontManager.displayMedium),
-                  SizedBox(height: 4.h),
+                  AppSpacing.h4,
                   Text(
                     'Notes you\'ve set aside for later.',
                     style: AppFontManager.bodySmall,
@@ -110,12 +111,12 @@ class _ArchiveEmptyState extends StatelessWidget {
                 size: 32.r,
               ),
             ),
-            SizedBox(height: 16.h),
+            AppSpacing.h16,
             Text(
               'Archive is empty',
               style: AppFontManager.headlineMedium.copyWith(fontSize: 18.sp),
             ),
-            SizedBox(height: 8.h),
+            AppSpacing.h8,
             Text(
               'Notes you archive will\nappear here.',
               textAlign: TextAlign.center,
@@ -143,8 +144,8 @@ class _UnarchiveBackground extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.unarchive_rounded, color: AppColors.white, size: 22.r),
-          SizedBox(height: 4.h),
+          Icon(Icons.unarchive_rounded, color: AppColors.white, size: 22.sp),
+          AppSpacing.h4,
           Text(
             'Restore',
             style: AppFontManager.caption.copyWith(
@@ -175,9 +176,9 @@ class _DeleteBackground extends StatelessWidget {
           Icon(
             Icons.delete_forever_rounded,
             color: AppColors.white,
-            size: 22.r,
+            size: 22.sp,
           ),
-          SizedBox(height: 4.h),
+          AppSpacing.h4,
           Text(
             'Delete Forever',
             style: AppFontManager.caption.copyWith(

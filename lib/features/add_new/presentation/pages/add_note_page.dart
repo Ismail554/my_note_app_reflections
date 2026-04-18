@@ -1,3 +1,4 @@
+import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -123,8 +124,8 @@ class _AddNotePageState extends State<AddNotePage> {
                   InkWell(
                     onTap: () => context.pop(),
                     child: Container(
-                      width: 36.r,
-                      height: 36.r,
+                      width: 36.w,
+                      height: 36.h,
                       decoration: BoxDecoration(
                         color: AppColors.surfaceVariant,
                         borderRadius: BorderRadius.circular(10.r),
@@ -132,7 +133,7 @@ class _AddNotePageState extends State<AddNotePage> {
                       child: Icon(
                         Icons.close_rounded,
                         color: AppColors.textSecondary,
-                        size: 18.r,
+                        size: 18.sp,
                       ),
                     ),
                   ),
@@ -144,13 +145,13 @@ class _AddNotePageState extends State<AddNotePage> {
                     style: AppFontManager.headlineMedium,
                   ),
                   const Spacer(),
-
+                  // delete button / archive
                   if (widget.note != null) ...[
                     InkWell(
                       onTap: () => _archiveNote(context),
                       child: Container(
-                        width: 36.r,
-                        height: 36.r,
+                        width: 36.w,
+                        height: 36.h,
                         margin: EdgeInsets.only(right: 12.w),
                         decoration: BoxDecoration(
                           color: AppColors.error.withValues(alpha: 0.1),
@@ -159,7 +160,7 @@ class _AddNotePageState extends State<AddNotePage> {
                         child: Icon(
                           Icons.delete_outline_rounded,
                           color: AppColors.error,
-                          size: 18.r,
+                          size: 18.sp,
                         ),
                       ),
                     ),
@@ -187,7 +188,7 @@ class _AddNotePageState extends State<AddNotePage> {
                     icon: Icons.calendar_today_outlined,
                     label: dateStr,
                   ),
-                  SizedBox(width: 10.w),
+                  AppSpacing.w10,
                   _MetaChip(icon: Icons.folder_outlined, label: _categoryName),
                 ],
               ),
@@ -203,6 +204,7 @@ class _AddNotePageState extends State<AddNotePage> {
                   children: [
                     // Title field
                     TextField(
+                      textInputAction: .next,
                       controller: _titleController,
                       style: AppFontManager.inputTitle,
                       maxLines: null,
@@ -218,10 +220,10 @@ class _AddNotePageState extends State<AddNotePage> {
                         filled: false,
                       ),
                     ),
-                    SizedBox(height: 12.h),
+                    AppSpacing.h12,
 
                     const Divider(color: AppColors.divider),
-                    SizedBox(height: 12.h),
+                    AppSpacing.h12,
 
                     // Body field
                     TextField(
@@ -240,7 +242,7 @@ class _AddNotePageState extends State<AddNotePage> {
                         filled: false,
                       ),
                     ),
-                    SizedBox(height: 40.h),
+                    AppSpacing.h40,
                   ],
                 ),
               ),
@@ -261,7 +263,7 @@ class _MetaChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+      padding: AppPadding.h10v6,
       decoration: BoxDecoration(
         color: AppColors.chipBackground,
         borderRadius: BorderRadius.circular(20.r),
@@ -270,8 +272,8 @@ class _MetaChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12.r, color: AppColors.primaryMedium),
-          SizedBox(width: 5.w),
+          Icon(icon, size: 12.sp, color: AppColors.primaryMedium),
+          AppSpacing.w6,
           Text(
             label,
             style: AppFontManager.labelMedium.copyWith(

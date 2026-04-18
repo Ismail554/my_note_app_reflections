@@ -1,3 +1,4 @@
+import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -90,11 +91,11 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
-                SizedBox(height: 28.h),
+                AppSpacing.h28,
 
                 // ─── App Name ─────────────────────────────────────────────
                 Text(AppStrings.appName, style: AppFontManager.displayMedium),
-                SizedBox(height: 10.h),
+                AppSpacing.h10,
 
                 // ─── Tagline ──────────────────────────────────────────────
                 Text(
@@ -104,8 +105,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                     fontStyle: FontStyle.italic,
                   ),
                 ),
-                SizedBox(height: 56.h),
-
+                AppSpacing.h56,
                 // ─── Animated Loading Dots ────────────────────────────────
                 _AnimatedDots(controller: _dotsController),
               ],

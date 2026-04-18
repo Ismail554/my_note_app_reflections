@@ -1,3 +1,4 @@
+import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
@@ -35,11 +36,11 @@ class NoteCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: 8.h),
+            AppSpacing.h8,
 
             // Date chip
             DateChip(label: note.dateLabel),
-            SizedBox(height: 10.h),
+            AppSpacing.h10,
 
             // Preview text
             if (note.preview.isNotEmpty)

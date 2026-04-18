@@ -1,3 +1,4 @@
+import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -50,12 +51,12 @@ class _SearchPageState extends State<SearchPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Search', style: AppFontManager.displayMedium),
-                  SizedBox(height: 4.h),
+                  AppSpacing.h4,
                   Text(
                     'Find notes by title or content.',
                     style: AppFontManager.bodySmall,
                   ),
-                  SizedBox(height: 20.h),
+                  AppSpacing.h20,
 
                   // ─── Search Field ──────────────────────────────────────
                   Obx(
@@ -92,14 +93,14 @@ class _SearchPageState extends State<SearchPage> {
               ),
             ),
 
-            SizedBox(height: 20.h),
+            AppSpacing.h20,
             Divider(
               height: 1,
               color: AppColors.divider,
               indent: 20.w,
               endIndent: 20.w,
             ),
-            SizedBox(height: 8.h),
+            AppSpacing.h8,
 
             // ─── Results ─────────────────────────────────────────────────
             Expanded(
@@ -151,7 +152,7 @@ class _SearchIdleState extends StatelessWidget {
               size: 32.r,
             ),
           ),
-          SizedBox(height: 16.h),
+          AppSpacing.h16,
           Text(
             'Start typing to search\nyour reflections.',
             textAlign: TextAlign.center,
@@ -177,8 +178,8 @@ class _NoResultsState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 72.r,
-              height: 72.r,
+              width: 72.w,
+              height: 72.h,
               decoration: const BoxDecoration(
                 color: AppColors.primarySurface,
                 shape: BoxShape.circle,
@@ -189,13 +190,13 @@ class _NoResultsState extends StatelessWidget {
                 size: 32.r,
               ),
             ),
-            SizedBox(height: 16.h),
+            AppSpacing.h16,
             Text(
               'No results for "$query"',
               textAlign: TextAlign.center,
               style: AppFontManager.headlineMedium.copyWith(fontSize: 16.sp),
             ),
-            SizedBox(height: 8.h),
+            AppSpacing.h8,
             Text(
               'Try different keywords or\ncheck the spelling.',
               textAlign: TextAlign.center,

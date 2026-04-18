@@ -1,3 +1,4 @@
+import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
@@ -23,8 +24,8 @@ class AppSaveButton extends StatelessWidget {
         ),
         child: isLoading
             ? SizedBox(
-                width: 14.r,
-                height: 14.r,
+                width: 14.w,
+                height: 14.h,
                 child: const CircularProgressIndicator(
                   color: AppColors.white,
                   strokeWidth: 2,
@@ -34,7 +35,7 @@ class AppSaveButton extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.check_rounded, color: AppColors.white, size: 14.r),
-                  SizedBox(width: 4.w),
+                  AppSpacing.h4,
                   Text('Save', style: AppFontManager.buttonSmall),
                 ],
               ),
