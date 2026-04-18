@@ -1,3 +1,4 @@
+import 'package:Reflections/core/constants/app_assets.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -37,17 +38,13 @@ class LoginPage extends StatelessWidget {
                   child: Column(
                     children: [
                       Container(
-                        width: 64.r,
-                        height: 64.r,
+                        width: 64.w,
+                        height: 64.h,
                         decoration: const BoxDecoration(
                           color: AppColors.primarySurface,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(
-                          Icons.edit_note_rounded,
-                          color: AppColors.primaryDark,
-                          size: 28.r,
-                        ),
+                        child: Image.asset(IconAssets.appIcon),
                       ),
                       AppSpacing.h14,
                       Text(AppStrings.appName, style: AppFontManager.appTitle),
@@ -55,10 +52,9 @@ class LoginPage extends StatelessWidget {
                   ),
                 ),
                 AppSpacing.h48,
-
                 // ─── Card ──────────────────────────────────────────────
                 Container(
-                  padding: EdgeInsets.all(24.r),
+                  padding: EdgeInsets.all(24.w),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(20.r),
@@ -97,12 +93,11 @@ class LoginPage extends StatelessWidget {
                           prefixIcon: Icon(
                             Icons.mail_outline_rounded,
                             color: AppColors.textHint,
-                            size: 20.r,
+                            size: 20.sp,
                           ),
                         ),
                       ),
                       AppSpacing.h16,
-
                       // Password field
                       Obx(
                         () => TextFormField(
@@ -117,7 +112,7 @@ class LoginPage extends StatelessWidget {
                             prefixIcon: Icon(
                               Icons.lock_outline_rounded,
                               color: AppColors.textHint,
-                              size: 20.r,
+                              size: 20.sp,
                             ),
                             suffixIcon: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -129,7 +124,7 @@ class LoginPage extends StatelessWidget {
                                         ? Icons.visibility_off_outlined
                                         : Icons.visibility_outlined,
                                     color: AppColors.textHint,
-                                    size: 20.r,
+                                    size: 20.sp,
                                   ),
                                 ),
                                 AppSpacing.w14,
@@ -158,7 +153,6 @@ class LoginPage extends StatelessWidget {
                         ),
                       ),
                       AppSpacing.h12,
-
                       // Error message
                       Obx(() {
                         if (_controller.errorMessage.value.isEmpty) {
@@ -184,7 +178,6 @@ class LoginPage extends StatelessWidget {
                           ),
                         );
                       }),
-
                       // Login Button
                       Obx(
                         () => AppPrimaryButton(
@@ -197,7 +190,6 @@ class LoginPage extends StatelessWidget {
                   ),
                 ),
                 AppSpacing.h28,
-
                 // ─── Register account ────────────────────────────────────────────
                 Center(
                   child: RichText(

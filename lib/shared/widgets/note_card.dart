@@ -18,8 +18,8 @@ class NoteCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.maxFinite,
-        height: 130.h,
-        constraints: BoxConstraints(maxHeight: 130.h),
+        height: 128.h,
+        constraints: BoxConstraints(maxHeight: 128.h),
         margin: EdgeInsets.only(bottom: 8.h),
         padding: EdgeInsets.all(16.r),
         decoration: BoxDecoration(

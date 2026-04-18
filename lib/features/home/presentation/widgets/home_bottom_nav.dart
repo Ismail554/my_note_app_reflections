@@ -77,7 +77,7 @@ class NavIcon extends StatelessWidget {
       child: Icon(
         icon,
         color: isSelected ? AppColors.primaryDark : AppColors.textHint,
-        size: 22.r,
+        size: 22.sp,
       ),
     );
   }

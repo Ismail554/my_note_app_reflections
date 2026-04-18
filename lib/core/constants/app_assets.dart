@@ -13,6 +13,7 @@ class ImageAssets {
 
 class IconAssets {
   static const String splash = "$iconPath/splash.png";
+  static const String appIcon = "$iconPath/app_icon.png";
 }
 
 class JsonAssets {

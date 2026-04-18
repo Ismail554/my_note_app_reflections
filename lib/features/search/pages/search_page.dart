@@ -74,7 +74,7 @@ class _SearchPageState extends State<SearchPage> {
                         prefixIcon: Icon(
                           Icons.search_rounded,
                           color: AppColors.primaryMedium,
-                          size: 20.r,
+                          size: 20.sp,
                         ),
                         suffixIcon: _controller.query.value.isNotEmpty
                             ? GestureDetector(
@@ -82,7 +82,7 @@ class _SearchPageState extends State<SearchPage> {
                                 child: Icon(
                                   Icons.close_rounded,
                                   color: AppColors.textHint,
-                                  size: 18.r,
+                                  size: 18.sp,
                                 ),
                               )
                             : null,
@@ -140,8 +140,8 @@ class _SearchIdleState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 72.r,
-            height: 72.r,
+            width: 72.w,
+            height: 72.h,
             decoration: const BoxDecoration(
               color: AppColors.primarySurface,
               shape: BoxShape.circle,
@@ -149,7 +149,7 @@ class _SearchIdleState extends StatelessWidget {
             child: Icon(
               Icons.search_rounded,
               color: AppColors.primaryXLight,
-              size: 32.r,
+              size: 32.sp,
             ),
           ),
           AppSpacing.h16,
@@ -187,7 +187,7 @@ class _NoResultsState extends StatelessWidget {
               child: Icon(
                 Icons.search_off_rounded,
                 color: AppColors.primaryXLight,
-                size: 32.r,
+                size: 32.sp,
               ),
             ),
             AppSpacing.h16,

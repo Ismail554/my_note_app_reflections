@@ -38,7 +38,7 @@ class FolderDrawer extends StatelessWidget {
                     child: Icon(
                       Icons.person_rounded,
                       color: Colors.white,
-                      size: 30.r,
+                      size: 30.sp,
                     ),
                   ),
                   AppSpacing.h16,
@@ -131,7 +131,7 @@ class FolderDrawer extends StatelessWidget {
                       Icon(
                         Icons.create_new_folder_outlined,
                         color: AppColors.primaryDark,
-                        size: 20.r,
+                        size: 20.sp,
                       ),
                       AppSpacing.w8,
                       Text(
@@ -235,7 +235,7 @@ class DrawerTile extends StatelessWidget {
             Icon(
               icon,
               color: isSelected ? AppColors.white : AppColors.primaryDark,
-              size: 20.r,
+              size: 20.sp,
             ),
             AppSpacing.w14,
             Expanded(

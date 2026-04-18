@@ -56,7 +56,7 @@ class RegisterPage extends StatelessWidget {
                     prefixIcon: Icon(
                       Icons.person_outline_rounded,
                       color: AppColors.textHint,
-                      size: 20.r,
+                      size: 20.sp,
                     ),
                   ),
                 ),
@@ -76,7 +76,7 @@ class RegisterPage extends StatelessWidget {
                     prefixIcon: Icon(
                       Icons.mail_outline_rounded,
                       color: AppColors.textHint,
-                      size: 20.r,
+                      size: 20.sp,
                     ),
                   ),
                 ),
@@ -97,7 +97,7 @@ class RegisterPage extends StatelessWidget {
                       prefixIcon: Icon(
                         Icons.lock_outline_rounded,
                         color: AppColors.textHint,
-                        size: 20.r,
+                        size: 20.sp,
                       ),
                       suffixIcon: GestureDetector(
                         onTap: _controller.togglePasswordVisibility,
@@ -106,7 +106,7 @@ class RegisterPage extends StatelessWidget {
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
                           color: AppColors.textHint,
-                          size: 20.r,
+                          size: 20.sp,
                         ),
                       ),
                     ),

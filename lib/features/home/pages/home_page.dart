@@ -37,7 +37,7 @@ class HomePage extends StatelessWidget {
             ? FloatingActionButton(
                 onPressed: controller.navigateToAddNote,
                 tooltip: 'New Note',
-                child: Icon(Icons.edit_rounded, size: 22.r),
+                child: Icon(Icons.edit_rounded, size: 22.sp),
               )
             : null,
 

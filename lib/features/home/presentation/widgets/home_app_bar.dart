@@ -29,8 +29,8 @@ class HomeAppBar extends StatelessWidget {
           Text(AppStrings.appName, style: AppFontManager.appTitle),
           const Spacer(),
           Container(
-            width: 36.r,
-            height: 36.r,
+            width: 36.w,
+            height: 36.h,
             decoration: BoxDecoration(
               color: AppColors.primarySurface,
               shape: BoxShape.circle,
@@ -39,7 +39,7 @@ class HomeAppBar extends StatelessWidget {
             child: Icon(
               Icons.person_rounded,
               color: AppColors.primaryDark,
-              size: 20.r,
+              size: 20.sp,
             ),
           ),
         ],

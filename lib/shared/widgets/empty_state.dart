@@ -27,8 +27,8 @@ class EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 72.r,
-              height: 72.r,
+              width: 72.w,
+              height: 72.h,
               decoration: const BoxDecoration(
                 color: AppColors.primarySurface,
                 shape: BoxShape.circle,
@@ -36,7 +36,7 @@ class EmptyState extends StatelessWidget {
               child: Icon(
                 icon,
                 color: AppColors.primaryXLight,
-                size: 32.r,
+                size: 32.sp,
               ),
             ),
             AppSpacing.h20,
