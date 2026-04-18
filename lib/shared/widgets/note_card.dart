@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:my_notes/core/theme/app_colors.dart';
-import 'package:my_notes/core/theme/app_font_manager.dart';
-import 'package:my_notes/shared/models/note_model.dart';
-import 'package:my_notes/shared/widgets/date_chip.dart';
+import 'package:Reflections/core/theme/app_colors.dart';
+import 'package:Reflections/core/theme/app_font_manager.dart';
+import 'package:Reflections/shared/models/note_model.dart';
+import 'package:Reflections/shared/widgets/date_chip.dart';
 
 class NoteCard extends StatelessWidget {
   final NoteModel note;

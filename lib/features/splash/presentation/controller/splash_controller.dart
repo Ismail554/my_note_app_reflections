@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
-import 'package:my_notes/core/services/auth_service.dart';
-import 'package:my_notes/core/utils/app_navigator.dart';
+import 'package:Reflections/core/services/auth_service.dart';
+import 'package:Reflections/core/utils/app_navigator.dart';
 
 class SplashController extends GetxController {
   @override
@@ -11,7 +11,7 @@ class SplashController extends GetxController {
 
   Future<void> _navigateAfterDelay() async {
     await Future.delayed(const Duration(seconds: 2));
-    
+
     // Check if user is already logged in
     if (AuthService.to.currentUser != null) {
       AppNavigator.goToHome();
@@ -20,7 +20,6 @@ class SplashController extends GetxController {
     }
   }
 }
-
 
 // Launch
 //   └── SplashPage (shown always, 2s)

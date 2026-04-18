@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
-import 'package:my_notes/core/services/note_service.dart';
-import 'package:my_notes/core/utils/app_navigator.dart';
-import 'package:my_notes/shared/models/note_model.dart';
+import 'package:Reflections/core/services/note_service.dart';
+import 'package:Reflections/core/utils/app_navigator.dart';
+import 'package:Reflections/shared/models/note_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class HomeController extends GetxController {
@@ -22,18 +22,17 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    
+
     // Initial load
     _initStorage();
 
-    // Listen to Auth changes 
+    // Listen to Auth changes
     FirebaseAuth.instance.userChanges().listen((user) {
       if (user == null) {
         notes.clear();
         folders.value = ['Reflections'];
         selectedFolder.value = 'All';
       } else {
-
         if (notes.isEmpty) {
           _initStorage();
         }
@@ -45,8 +44,8 @@ class HomeController extends GetxController {
     if (FirebaseAuth.instance.currentUser == null) return;
 
     notes.bindStream(NoteService.to.getNotesStream());
-    
-    // Listen to notes changes 
+
+    // Listen to notes changes
     ever(notes, (_) => _updateFoldersFromNotes());
   }
 
@@ -56,17 +55,17 @@ class HomeController extends GetxController {
         .where((c) => c.isNotEmpty && c != 'All')
         .toSet()
         .toList();
-    
+
     if (!uniqueCategories.contains('Reflections')) {
       uniqueCategories.add('Reflections');
     }
-    
+
     for (var f in folders) {
       if (!uniqueCategories.contains(f)) {
         uniqueCategories.add(f);
       }
     }
-    
+
     uniqueCategories.sort();
     folders.value = uniqueCategories;
   }
@@ -81,7 +80,7 @@ class HomeController extends GetxController {
   void createFolder(String name) {
     final trimName = name.trim();
     if (trimName.isEmpty || trimName.toLowerCase() == 'all') return;
-    
+
     if (!folders.contains(trimName)) {
       folders.add(trimName);
       folders.sort();

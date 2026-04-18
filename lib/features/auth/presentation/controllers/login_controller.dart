@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:my_notes/core/services/auth_service.dart';
-import 'package:my_notes/core/utils/app_navigator.dart';
+import 'package:Reflections/core/services/auth_service.dart';
+import 'package:Reflections/core/utils/app_navigator.dart';
 
 class LoginController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -12,10 +12,7 @@ class LoginController extends GetxController {
     obscurePassword.value = !obscurePassword.value;
   }
 
-  Future<void> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> login({required String email, required String password}) async {
     try {
       isLoading.value = true;
       errorMessage.value = '';
@@ -23,10 +20,10 @@ class LoginController extends GetxController {
       // Firebase Auth sign in
       await AuthService.to.signInWithEmailAndPassword(email, password);
       AppNavigator.goToHome();
-
-      
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
+      if (e.code == 'user-not-found' ||
+          e.code == 'wrong-password' ||
+          e.code == 'invalid-credential') {
         errorMessage.value = 'Invalid email or password.';
       } else if (e.code == 'invalid-email') {
         errorMessage.value = 'The email address is not valid.';
@@ -39,15 +36,6 @@ class LoginController extends GetxController {
       isLoading.value = false;
     }
   }
-
-
-
-
-
-
-
-
-
 
   void navigateToRegister() {
     AppNavigator.goToRegister();

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:my_notes/core/theme/app_colors.dart';
-import 'package:my_notes/core/theme/app_font_manager.dart';
+import 'package:Reflections/core/theme/app_colors.dart';
+import 'package:Reflections/core/theme/app_font_manager.dart';
 
 /// Reusable full-width primary button with the Reflections dark-green style
 class AppPrimaryButton extends StatelessWidget {
@@ -36,9 +36,7 @@ class AppPrimaryButton extends StatelessWidget {
               )
             : Row(
                 mainAxisAlignment: .center,
-                children: [
-                  Text(label, style: AppFontManager.buttonLarge),
-                ],
+                children: [Text(label, style: AppFontManager.buttonLarge)],
               ),
       ),
     );

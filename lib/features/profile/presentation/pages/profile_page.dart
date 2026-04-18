@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:my_notes/core/theme/app_colors.dart';
-import 'package:my_notes/core/theme/app_font_manager.dart';
-import 'package:my_notes/features/home/presentation/controller/home_controller.dart';
-import 'package:my_notes/features/profile/presentation/controller/settings_controller.dart';
+import 'package:Reflections/core/theme/app_colors.dart';
+import 'package:Reflections/core/theme/app_font_manager.dart';
+import 'package:Reflections/features/home/presentation/controller/home_controller.dart';
+import 'package:Reflections/features/profile/presentation/controller/settings_controller.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -32,10 +32,12 @@ class SettingsPage extends StatelessWidget {
             SizedBox(height: 28.h),
 
             // ─── Profile Card ─────────────────────────────────────────────
-            Obx(() => _ProfileCard(
-                  name: controller.displayName.value,
-                  email: controller.email.value,
-                )),
+            Obx(
+              () => _ProfileCard(
+                name: controller.displayName.value,
+                email: controller.email.value,
+              ),
+            ),
             SizedBox(height: 28.h),
 
             // ─── Account Section ──────────────────────────────────────────
@@ -57,18 +59,22 @@ class SettingsPage extends StatelessWidget {
             // ─── Preferences Section ──────────────────────────────────────
             _SectionLabel(label: 'Preferences'),
             SizedBox(height: 10.h),
-            Obx(() => _ToggleTile(
-                  icon: Icons.notifications_outlined,
-                  label: 'Notifications',
-                  value: controller.notificationsEnabled.value,
-                  onChanged: controller.toggleNotifications,
-                )),
-            Obx(() => _ToggleTile(
-                  icon: Icons.save_outlined,
-                  label: 'Auto-save drafts',
-                  value: controller.autoSaveEnabled.value,
-                  onChanged: controller.toggleAutoSave,
-                )),
+            Obx(
+              () => _ToggleTile(
+                icon: Icons.notifications_outlined,
+                label: 'Notifications',
+                value: controller.notificationsEnabled.value,
+                onChanged: controller.toggleNotifications,
+              ),
+            ),
+            Obx(
+              () => _ToggleTile(
+                icon: Icons.save_outlined,
+                label: 'Auto-save drafts',
+                value: controller.autoSaveEnabled.value,
+                onChanged: controller.toggleAutoSave,
+              ),
+            ),
 
             SizedBox(height: 24.h),
 
@@ -118,10 +124,7 @@ class SettingsPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Close',
-              style: AppFontManager.link,
-            ),
+            child: Text('Close', style: AppFontManager.link),
           ),
         ],
       ),
@@ -171,7 +174,9 @@ class _ProfileCard extends StatelessWidget {
               children: [
                 Text(
                   name,
-                  style: AppFontManager.headlineMedium.copyWith(fontSize: 16.sp),
+                  style: AppFontManager.headlineMedium.copyWith(
+                    fontSize: 16.sp,
+                  ),
                 ),
                 SizedBox(height: 2.h),
                 Text(
@@ -251,9 +256,12 @@ class _SettingsTile extends StatelessWidget {
             ),
             SizedBox(width: 14.w),
             Expanded(
-              child: Text(label, style: AppFontManager.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
-              )),
+              child: Text(
+                label,
+                style: AppFontManager.bodyMedium.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
             ),
             Icon(
               Icons.arrow_forward_ios_rounded,
@@ -304,9 +312,12 @@ class _ToggleTile extends StatelessWidget {
           ),
           SizedBox(width: 14.w),
           Expanded(
-            child: Text(label, style: AppFontManager.bodyMedium.copyWith(
-              color: AppColors.textPrimary,
-            )),
+            child: Text(
+              label,
+              style: AppFontManager.bodyMedium.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
           ),
           Switch(
             value: value,
@@ -357,9 +368,12 @@ class _InfoTile extends StatelessWidget {
           ),
           SizedBox(width: 14.w),
           Expanded(
-            child: Text(label, style: AppFontManager.bodyMedium.copyWith(
-              color: AppColors.textPrimary,
-            )),
+            child: Text(
+              label,
+              style: AppFontManager.bodyMedium.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
           ),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),

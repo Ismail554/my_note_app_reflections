@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:my_notes/core/theme/app_colors.dart';
-import 'package:my_notes/core/theme/app_font_manager.dart';
-import 'package:my_notes/features/activity/presentation/controller/archive_controller.dart';
-import 'package:my_notes/shared/widgets/note_card.dart';
+import 'package:Reflections/core/theme/app_colors.dart';
+import 'package:Reflections/core/theme/app_font_manager.dart';
+import 'package:Reflections/features/activity/presentation/controller/archive_controller.dart';
+import 'package:Reflections/shared/widgets/note_card.dart';
 
 class ArchivePage extends StatelessWidget {
   const ArchivePage({super.key});

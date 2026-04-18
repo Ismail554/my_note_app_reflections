@@ -2,13 +2,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:my_notes/core/constants/app_constants.dart';
-import 'package:my_notes/core/constants/app_strings.dart';
-import 'package:my_notes/core/theme/app_colors.dart';
-import 'package:my_notes/core/theme/app_font_manager.dart';
-import 'package:my_notes/core/utils/app_validation.dart';
-import 'package:my_notes/core/widgets/custom_button.dart';
-import 'package:my_notes/features/auth/presentation/controllers/login_controller.dart';
+import 'package:Reflections/core/constants/app_constants.dart';
+import 'package:Reflections/core/constants/app_strings.dart';
+import 'package:Reflections/core/theme/app_colors.dart';
+import 'package:Reflections/core/theme/app_font_manager.dart';
+import 'package:Reflections/core/utils/app_validation.dart';
+import 'package:Reflections/core/widgets/custom_button.dart';
+import 'package:Reflections/features/auth/presentation/controllers/login_controller.dart';
 
 class LoginPage extends StatelessWidget {
   LoginPage({super.key});

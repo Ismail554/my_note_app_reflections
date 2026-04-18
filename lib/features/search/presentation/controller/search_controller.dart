@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
-import 'package:my_notes/features/home/presentation/controller/home_controller.dart';
-import 'package:my_notes/shared/models/note_model.dart';
+import 'package:Reflections/features/home/presentation/controller/home_controller.dart';
+import 'package:Reflections/shared/models/note_model.dart';
 
 class SearchController extends GetxController {
   final RxString query = ''.obs;
@@ -17,9 +17,11 @@ class SearchController extends GetxController {
     hasSearched.value = true;
     final homeController = Get.find<HomeController>();
     results.value = homeController.notes
-        .where((note) =>
-            note.title.toLowerCase().contains(value.toLowerCase()) ||
-            note.description.toLowerCase().contains(value.toLowerCase()))
+        .where(
+          (note) =>
+              note.title.toLowerCase().contains(value.toLowerCase()) ||
+              note.description.toLowerCase().contains(value.toLowerCase()),
+        )
         .toList();
   }
 

@@ -1,19 +1,14 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:my_notes/core/theme/app_colors.dart';
-import 'package:my_notes/core/theme/app_font_manager.dart';
+import 'package:Reflections/core/theme/app_colors.dart';
+import 'package:Reflections/core/theme/app_font_manager.dart';
 
 /// add note save button
 class AppSaveButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isLoading;
 
-  const AppSaveButton({
-    super.key,
-    this.onPressed,
-    this.isLoading = false,
-  });
+  const AppSaveButton({super.key, this.onPressed, this.isLoading = false});
 
   @override
   Widget build(BuildContext context) {
@@ -40,10 +35,7 @@ class AppSaveButton extends StatelessWidget {
                 children: [
                   Icon(Icons.check_rounded, color: AppColors.white, size: 14.r),
                   SizedBox(width: 4.w),
-                  Text(
-                    'Save',
-                    style: AppFontManager.buttonSmall,
-                  ),
+                  Text('Save', style: AppFontManager.buttonSmall),
                 ],
               ),
       ),

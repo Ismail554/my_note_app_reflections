@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:my_notes/shared/models/note_model.dart';
+import 'package:Reflections/shared/models/note_model.dart';
 
 class NoteService extends GetxService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -22,16 +22,20 @@ class NoteService extends GetxService {
         .where('isArchived', isEqualTo: false)
         .snapshots()
         .map((snapshot) {
-      final notes = snapshot.docs
-          .map((doc) => NoteModel.fromMap(doc.data(), doc.id))
-          .toList();
-      // Manual sorting if needed, or wait for index creation
-      notes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      return notes;
-    }).handleError((error) {
-      Get.snackbar('Sync Error', 'Check your Firestore indexes: $error',
-          snackPosition: SnackPosition.BOTTOM);
-    });
+          final notes = snapshot.docs
+              .map((doc) => NoteModel.fromMap(doc.data(), doc.id))
+              .toList();
+          // Manual sorting if needed, or wait for index creation
+          notes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+          return notes;
+        })
+        .handleError((error) {
+          Get.snackbar(
+            'Sync Error',
+            'Check your Firestore indexes: $error',
+            snackPosition: SnackPosition.BOTTOM,
+          );
+        });
   }
 
   /// Streams all archived notes for the current user
@@ -40,15 +44,19 @@ class NoteService extends GetxService {
         .where('isArchived', isEqualTo: true)
         .snapshots()
         .map((snapshot) {
-      final notes = snapshot.docs
-          .map((doc) => NoteModel.fromMap(doc.data(), doc.id))
-          .toList();
-      notes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      return notes;
-    }).handleError((error) {
-       Get.snackbar('Sync Error', 'Check your Firestore indexes: $error',
-          snackPosition: SnackPosition.BOTTOM);
-    });
+          final notes = snapshot.docs
+              .map((doc) => NoteModel.fromMap(doc.data(), doc.id))
+              .toList();
+          notes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+          return notes;
+        })
+        .handleError((error) {
+          Get.snackbar(
+            'Sync Error',
+            'Check your Firestore indexes: $error',
+            snackPosition: SnackPosition.BOTTOM,
+          );
+        });
   }
 
   Future<void> addNote(NoteModel note) async {

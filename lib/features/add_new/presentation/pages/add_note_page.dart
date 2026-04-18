@@ -3,13 +3,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:my_notes/core/constants/app_strings.dart';
-import 'package:my_notes/core/theme/app_colors.dart';
-import 'package:my_notes/core/theme/app_font_manager.dart';
-import 'package:my_notes/core/widgets/custom_button.dart';
-import 'package:my_notes/core/widgets/note_save_button.dart';
-import 'package:my_notes/features/home/presentation/controller/home_controller.dart';
-import 'package:my_notes/shared/models/note_model.dart';
+import 'package:Reflections/core/constants/app_strings.dart';
+import 'package:Reflections/core/theme/app_colors.dart';
+import 'package:Reflections/core/theme/app_font_manager.dart';
+import 'package:Reflections/core/widgets/custom_button.dart';
+import 'package:Reflections/core/widgets/note_save_button.dart';
+import 'package:Reflections/features/home/presentation/controller/home_controller.dart';
+import 'package:Reflections/shared/models/note_model.dart';
 
 class AddNotePage extends StatefulWidget {
   final NoteModel? note;
@@ -70,7 +70,7 @@ class _AddNotePageState extends State<AddNotePage> {
 
     _isSaving.value = true;
 
-// model creation
+    // model creation
     final isEditing = widget.note != null;
     final note = NoteModel(
       id: isEditing ? widget.note!.id : '',
@@ -96,8 +96,7 @@ class _AddNotePageState extends State<AddNotePage> {
     if (context.mounted) context.pop();
   }
 
-
-// archive note
+  // archive note
   void _archiveNote(BuildContext context) {
     if (widget.note == null) return;
     if (Get.isRegistered<HomeController>()) {
@@ -108,8 +107,7 @@ class _AddNotePageState extends State<AddNotePage> {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr =
-        DateFormat('MMMM d, y').format(DateTime.now());
+    final dateStr = DateFormat('MMMM d, y').format(DateTime.now());
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -118,8 +116,7 @@ class _AddNotePageState extends State<AddNotePage> {
           children: [
             // ─── Top Bar ──────────────────────────────────────────────
             Padding(
-              padding:
-                  EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
               child: Row(
                 children: [
                   // Close button
@@ -169,10 +166,12 @@ class _AddNotePageState extends State<AddNotePage> {
                   ],
 
                   // Save button
-                  Obx(() => AppSaveButton(
-                        isLoading: _isSaving.value,
-                        onPressed: () => _save(context),
-                      )),
+                  Obx(
+                    () => AppSaveButton(
+                      isLoading: _isSaving.value,
+                      onPressed: () => _save(context),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -181,8 +180,7 @@ class _AddNotePageState extends State<AddNotePage> {
 
             // ─── Metadata row ─────────────────────────────────────────
             Padding(
-              padding:
-                  EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
               child: Row(
                 children: [
                   _MetaChip(
@@ -190,10 +188,7 @@ class _AddNotePageState extends State<AddNotePage> {
                     label: dateStr,
                   ),
                   SizedBox(width: 10.w),
-                  _MetaChip(
-                    icon: Icons.folder_outlined,
-                    label: _categoryName,
-                  ),
+                  _MetaChip(icon: Icons.folder_outlined, label: _categoryName),
                 ],
               ),
             ),

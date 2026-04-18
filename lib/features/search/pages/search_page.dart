@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:my_notes/core/theme/app_colors.dart';
-import 'package:my_notes/core/theme/app_font_manager.dart';
-import 'package:my_notes/features/search/presentation/controller/search_controller.dart'
+import 'package:Reflections/core/theme/app_colors.dart';
+import 'package:Reflections/core/theme/app_font_manager.dart';
+import 'package:Reflections/features/search/presentation/controller/search_controller.dart'
     as sc;
-import 'package:my_notes/shared/widgets/note_card.dart';
+import 'package:Reflections/shared/widgets/note_card.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -58,32 +58,36 @@ class _SearchPageState extends State<SearchPage> {
                   SizedBox(height: 20.h),
 
                   // ─── Search Field ──────────────────────────────────────
-                  Obx(() => TextField(
-                        controller: _textController,
-                        onChanged: _controller.search,
-                        style: AppFontManager.bodyMedium
-                            .copyWith(color: AppColors.textPrimary),
-                        decoration: InputDecoration(
-                          hintText: 'Search your thoughts...',
-                          hintStyle: AppFontManager.bodyMedium
-                              .copyWith(color: AppColors.textHint),
-                          prefixIcon: Icon(
-                            Icons.search_rounded,
-                            color: AppColors.primaryMedium,
-                            size: 20.r,
-                          ),
-                          suffixIcon: _controller.query.value.isNotEmpty
-                              ? GestureDetector(
-                                  onTap: _onClear,
-                                  child: Icon(
-                                    Icons.close_rounded,
-                                    color: AppColors.textHint,
-                                    size: 18.r,
-                                  ),
-                                )
-                              : null,
+                  Obx(
+                    () => TextField(
+                      controller: _textController,
+                      onChanged: _controller.search,
+                      style: AppFontManager.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Search your thoughts...',
+                        hintStyle: AppFontManager.bodyMedium.copyWith(
+                          color: AppColors.textHint,
                         ),
-                      )),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: AppColors.primaryMedium,
+                          size: 20.r,
+                        ),
+                        suffixIcon: _controller.query.value.isNotEmpty
+                            ? GestureDetector(
+                                onTap: _onClear,
+                                child: Icon(
+                                  Icons.close_rounded,
+                                  color: AppColors.textHint,
+                                  size: 18.r,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -108,8 +112,10 @@ class _SearchPageState extends State<SearchPage> {
                 }
                 return ListView.builder(
                   physics: const BouncingScrollPhysics(),
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 8.h,
+                  ),
                   itemCount: _controller.results.length,
                   itemBuilder: (context, index) {
                     return NoteCard(note: _controller.results[index]);
@@ -187,8 +193,7 @@ class _NoResultsState extends StatelessWidget {
             Text(
               'No results for "$query"',
               textAlign: TextAlign.center,
-              style:
-                  AppFontManager.headlineMedium.copyWith(fontSize: 16.sp),
+              style: AppFontManager.headlineMedium.copyWith(fontSize: 16.sp),
             ),
             SizedBox(height: 8.h),
             Text(

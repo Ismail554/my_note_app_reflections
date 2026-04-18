@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:my_notes/core/services/auth_service.dart';
-import 'package:my_notes/core/services/user_service.dart';
-import 'package:my_notes/core/utils/app_navigator.dart';
+import 'package:Reflections/core/services/auth_service.dart';
+import 'package:Reflections/core/services/user_service.dart';
+import 'package:Reflections/core/utils/app_navigator.dart';
 
 class RegisterController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -20,11 +20,13 @@ class RegisterController extends GetxController {
   }) async {
     try {
       isLoading.value = true;
-      errorMessage.value =  ' Register error..';
+      errorMessage.value = ' Register error..';
 
       // 1. Create user in Firebase Auth
-      final userCredential = await AuthService.to
-          .registerWithEmailAndPassword(email, password);
+      final userCredential = await AuthService.to.registerWithEmailAndPassword(
+        email,
+        password,
+      );
 
       final user = userCredential.user;
       if (user != null) {

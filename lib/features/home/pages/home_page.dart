@@ -2,14 +2,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:my_notes/core/constants/app_strings.dart';
-import 'package:my_notes/core/theme/app_colors.dart';
-import 'package:my_notes/core/theme/app_font_manager.dart';
-import 'package:my_notes/features/activity/pages/archive_page.dart';
-import 'package:my_notes/features/home/presentation/controller/home_controller.dart';
-import 'package:my_notes/features/profile/presentation/pages/profile_page.dart';
-import 'package:my_notes/features/search/pages/search_page.dart';
-import 'package:my_notes/shared/widgets/note_card.dart';
+import 'package:Reflections/core/constants/app_strings.dart';
+import 'package:Reflections/core/theme/app_colors.dart';
+import 'package:Reflections/core/theme/app_font_manager.dart';
+import 'package:Reflections/features/activity/pages/archive_page.dart';
+import 'package:Reflections/features/home/presentation/controller/home_controller.dart';
+import 'package:Reflections/features/profile/presentation/pages/profile_page.dart';
+import 'package:Reflections/features/search/pages/search_page.dart';
+import 'package:Reflections/shared/widgets/note_card.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});

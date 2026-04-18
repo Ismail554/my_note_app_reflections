@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
-import 'package:my_notes/core/services/auth_service.dart';
-import 'package:my_notes/core/utils/app_navigator.dart';
+import 'package:Reflections/core/services/auth_service.dart';
+import 'package:Reflections/core/utils/app_navigator.dart';
 
 class SettingsController extends GetxController {
   final RxString displayName = ''.obs;

@@ -1,8 +1,7 @@
-
 import 'package:flutter/widgets.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:my_notes/core/theme/app_colors.dart';
-import 'package:my_notes/core/theme/app_font_manager.dart';
+import 'package:Reflections/core/theme/app_colors.dart';
+import 'package:Reflections/core/theme/app_font_manager.dart';
 
 class DateChip extends StatelessWidget {
   final String label;
@@ -12,7 +11,6 @@ class DateChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
       decoration: BoxDecoration(
         color: AppColors.chipBackground,

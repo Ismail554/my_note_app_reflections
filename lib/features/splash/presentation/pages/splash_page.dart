@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:my_notes/core/theme/app_colors.dart';
-import 'package:my_notes/core/theme/app_font_manager.dart';
-import 'package:my_notes/core/constants/app_strings.dart';
-import 'package:my_notes/features/splash/presentation/controller/splash_controller.dart';
+import 'package:Reflections/core/theme/app_colors.dart';
+import 'package:Reflections/core/theme/app_font_manager.dart';
+import 'package:Reflections/core/constants/app_strings.dart';
+import 'package:Reflections/features/splash/presentation/controller/splash_controller.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -13,8 +13,7 @@ class SplashPage extends StatefulWidget {
   State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage>
-    with TickerProviderStateMixin {
+class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   late final AnimationController _fadeController;
   late final Animation<double> _fadeAnimation;
   late final AnimationController _scaleController;
@@ -40,9 +39,10 @@ class _SplashPageState extends State<SplashPage>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-    _scaleAnimation = Tween<double>(begin: 0.88, end: 1.0).animate(
-      CurvedAnimation(parent: _scaleController, curve: Curves.easeOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.88,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _scaleController, curve: Curves.easeOut));
 
     // Dots pulse animation
     _dotsController = AnimationController(
@@ -93,10 +93,7 @@ class _SplashPageState extends State<SplashPage>
                 SizedBox(height: 28.h),
 
                 // ─── App Name ─────────────────────────────────────────────
-                Text(
-                  AppStrings.appName,
-                  style: AppFontManager.displayMedium,
-                ),
+                Text(AppStrings.appName, style: AppFontManager.displayMedium),
                 SizedBox(height: 10.h),
 
                 // ─── Tagline ──────────────────────────────────────────────
