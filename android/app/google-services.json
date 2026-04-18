@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "829958955031",
+    "project_id": "my-notes-18366",
+    "storage_bucket": "my-notes-18366.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:829958955031:android:8e07402e8512d9a25f3c52",
+        "android_client_info": {
+          "package_name": "com.reflections.ismail"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMoFrbo5Xi31toR4-0l7kv3mCGtYwo2VY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,4 +1,4 @@
-package com.example.my_notes
+package com.reflections.ismail
 
 import io.flutter.embedding.android.FlutterActivity
 
