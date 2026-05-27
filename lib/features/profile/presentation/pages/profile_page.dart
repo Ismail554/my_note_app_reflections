@@ -12,9 +12,29 @@ import 'package:Reflections/features/profile/presentation/widgets/profile_card.d
 import 'package:Reflections/features/profile/presentation/widgets/section_label.dart';
 import 'package:Reflections/features/profile/presentation/widgets/settings_tile.dart';
 import 'package:Reflections/features/profile/presentation/widgets/toggle_tile.dart';
+import 'package:Reflections/features/profile/presentation/widgets/edit_profile_sheet.dart';
+import 'package:Reflections/features/profile/presentation/widgets/change_password_sheet.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
+
+  void _showEditProfile(BuildContext context, SettingsController controller) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => EditProfileSheet(controller: controller),
+    );
+  }
+
+  void _showChangePassword(BuildContext context, SettingsController controller) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ChangePasswordSheet(controller: controller),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,10 +59,13 @@ class SettingsPage extends StatelessWidget {
             AppSpacing.h28,
 
             // ─── Profile Card ─────────────────────────────────────────────
-            Obx(
-              () => ProfileCard(
-                name: controller.displayName.value,
-                email: controller.email.value,
+            GestureDetector(
+              onTap: () => _showEditProfile(context, controller),
+              child: Obx(
+                () => ProfileCard(
+                  name: controller.displayName.value,
+                  email: controller.email.value,
+                ),
               ),
             ),
             AppSpacing.h28,
@@ -53,12 +76,12 @@ class SettingsPage extends StatelessWidget {
             SettingsTile(
               icon: Icons.person_outline_rounded,
               label: 'Edit Profile',
-              onTap: () {},
+              onTap: () => _showEditProfile(context, controller),
             ),
             SettingsTile(
               icon: Icons.lock_outline_rounded,
               label: 'Change Password',
-              onTap: () {},
+              onTap: () => _showChangePassword(context, controller),
             ),
 
             AppSpacing.h24,

@@ -33,4 +33,18 @@ class AuthService extends GetxService {
   Future<void> updateDisplayName(String name) async {
     await _auth.currentUser?.updateDisplayName(name);
   }
+
+  Future<void> updatePassword(String oldPassword, String newPassword) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) {
+      throw Exception('No user authenticated');
+    }
+
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: oldPassword,
+    );
+    await user.reauthenticateWithCredential(credential);
+    await user.updatePassword(newPassword);
+  }
 }

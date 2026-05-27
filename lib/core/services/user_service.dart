@@ -21,4 +21,10 @@ class UserService extends GetxService {
   Future<DocumentSnapshot> getUserProfile(String uid) async {
     return await _firestore.collection('users').doc(uid).get();
   }
+
+  Future<void> updateUserProfileName(String uid, String name) async {
+    await _firestore.collection('users').doc(uid).update({
+      'name': name,
+    });
+  }
 }
