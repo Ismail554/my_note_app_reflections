@@ -120,7 +120,7 @@ class _NotesTabState extends State<NotesTab> {
                 scrollDirection: Axis.horizontal,
                 padding: EdgeInsets.symmetric(horizontal: 20.w),
                 itemCount: provider.folders.length + 1, // +1 for "All"
-                separatorBuilder: (_, __) => SizedBox(width: 8.w),
+                separatorBuilder: (context, index) => SizedBox(width: 8.w),
                 itemBuilder: (context, index) {
                   final isAll = index == 0;
                   final label = isAll ? 'All' : provider.folders[index - 1];

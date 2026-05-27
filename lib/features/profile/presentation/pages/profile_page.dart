@@ -5,6 +5,8 @@ import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
 import 'package:Reflections/core/providers/settings_provider.dart';
 import 'package:Reflections/core/services/data_export_service.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:Reflections/core/services/data_import_service.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -247,11 +249,34 @@ class SettingsPage extends StatelessWidget {
     }
   }
 
-  void _importData(BuildContext context) {
-    // File picker would be integrated here. For now, show info.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Import: Place reflections_backup.json in your files.')),
-    );
+  void _importData(BuildContext context) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final path = result.files.single.path!;
+        final error = await DataImportService.importData(path);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error ?? 'Data restored successfully! Please restart app.')),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No backup file selected.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Import failed: $e')),
+        );
+      }
+    }
   }
 
   void _confirmLogout(BuildContext context, SettingsProvider settings) {

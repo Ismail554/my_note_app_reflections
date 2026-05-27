@@ -213,7 +213,7 @@ class _TodayHabitsSection extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.symmetric(horizontal: 20.w),
               itemCount: habits.length,
-              separatorBuilder: (_, __) => SizedBox(width: 10.w),
+              separatorBuilder: (context, index) => SizedBox(width: 10.w),
               itemBuilder: (context, index) {
                 final habit = habits[index];
                 final isDone = habit.isCompletedOn(todayStr);
@@ -299,7 +299,7 @@ class _TodayTasksSection extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(horizontal: 20.w),
             itemCount: tasks.length > 5 ? 5 : tasks.length,
-            separatorBuilder: (_, __) => SizedBox(height: 8.h),
+            separatorBuilder: (context, index) => SizedBox(height: 8.h),
             itemBuilder: (context, index) {
               final task = tasks[index];
               return _TodoCard(todo: task, isDark: isDark);
@@ -414,7 +414,7 @@ class _UpcomingRemindersSection extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(horizontal: 20.w),
             itemCount: upcoming.length > 3 ? 3 : upcoming.length,
-            separatorBuilder: (_, __) => SizedBox(height: 8.h),
+            separatorBuilder: (context, index) => SizedBox(height: 8.h),
             itemBuilder: (context, index) {
               final reminder = upcoming[index];
               final timeStr = DateFormat('MMM d, h:mm a').format(reminder.triggerDateTime);

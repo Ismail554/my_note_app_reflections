@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' as foundation;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -5,6 +6,13 @@ import 'package:Reflections/core/config/router_config.dart';
 import 'package:Reflections/core/theme/app_theme.dart';
 import 'package:Reflections/core/localization/app_translations.dart';
 import 'package:Reflections/core/providers/settings_provider.dart';
+
+class PlatformUtils {
+  static bool get isIOS =>
+      foundation.defaultTargetPlatform == TargetPlatform.iOS;
+  static bool get isAndroid =>
+      foundation.defaultTargetPlatform == TargetPlatform.android;
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -27,7 +35,8 @@ class MyApp extends StatelessWidget {
           themeMode: settingsProvider.themeMode,
           routeInformationParser: AppRouterConfig.router.routeInformationParser,
           routerDelegate: AppRouterConfig.router.routerDelegate,
-          routeInformationProvider: AppRouterConfig.router.routeInformationProvider,
+          routeInformationProvider:
+              AppRouterConfig.router.routeInformationProvider,
           locale: languageProvider.locale,
         );
       },
