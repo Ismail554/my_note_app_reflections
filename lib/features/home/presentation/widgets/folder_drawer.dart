@@ -1,18 +1,20 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
 import 'package:Reflections/core/constants/app_constants.dart';
-import 'package:Reflections/features/home/presentation/controller/home_controller.dart';
+import 'package:Reflections/core/providers/note_provider.dart';
 
 class FolderDrawer extends StatelessWidget {
-  final HomeController controller;
-  const FolderDrawer({super.key, required this.controller});
+  const FolderDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final noteProvider = context.watch<NoteProvider>();
+    final selected = noteProvider.selectedFolder;
+
     return Drawer(
       backgroundColor: AppColors.surface,
       child: SafeArea(
@@ -76,39 +78,36 @@ class FolderDrawer extends StatelessWidget {
             AppSpacing.h10,
 
             Expanded(
-              child: Obx(() {
-                final selected = controller.selectedFolder.value;
-                return ListView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(horizontal: 12.w),
-                  children: [
-                    DrawerTile(
-                      title: 'All Notes',
-                      icon: Icons.all_inbox_rounded,
-                      isSelected: selected == 'All',
-                      onTap: () {
-                        controller.selectFolder('All');
-                        Scaffold.of(context).closeDrawer();
-                      },
-                    ),
-                    AppSpacing.h8,
-                    ...controller.folders.map((folder) {
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: 8.h),
-                        child: DrawerTile(
-                          title: folder,
-                          icon: Icons.folder_outlined,
-                          isSelected: selected == folder,
-                          onTap: () {
-                            controller.selectFolder(folder);
-                            Scaffold.of(context).closeDrawer();
-                          },
-                        ),
-                      );
-                    }),
-                  ],
-                );
-              }),
+              child: ListView(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: 12.w),
+                children: [
+                  DrawerTile(
+                    title: 'All Notes',
+                    icon: Icons.all_inbox_rounded,
+                    isSelected: selected == 'All',
+                    onTap: () {
+                      noteProvider.selectFolder('All');
+                      Scaffold.of(context).closeDrawer();
+                    },
+                  ),
+                  AppSpacing.h8,
+                  ...noteProvider.folders.map((folder) {
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 8.h),
+                      child: DrawerTile(
+                        title: folder,
+                        icon: Icons.folder_outlined,
+                        isSelected: selected == folder,
+                        onTap: () {
+                          noteProvider.selectFolder(folder);
+                          Scaffold.of(context).closeDrawer();
+                        },
+                      ),
+                    );
+                  }),
+                ],
+              ),
             ),
 
             Divider(height: 1, color: AppColors.divider),
@@ -117,7 +116,7 @@ class FolderDrawer extends StatelessWidget {
               child: GestureDetector(
                 onTap: () {
                   Scaffold.of(context).closeDrawer();
-                  _showCreateFolderDialog(context);
+                  _showCreateFolderDialog(context, noteProvider);
                 },
                 child: Container(
                   padding: EdgeInsets.symmetric(vertical: 14.h),
@@ -151,7 +150,7 @@ class FolderDrawer extends StatelessWidget {
     );
   }
 
-  void _showCreateFolderDialog(BuildContext context) {
+  void _showCreateFolderDialog(BuildContext context, NoteProvider noteProvider) {
     final tc = TextEditingController();
     showDialog(
       context: context,
@@ -190,7 +189,7 @@ class FolderDrawer extends StatelessWidget {
             onPressed: () {
               final name = tc.text.trim();
               if (name.isNotEmpty) {
-                controller.createFolder(name);
+                noteProvider.createFolder(name);
               }
               Navigator.of(ctx).pop();
             },

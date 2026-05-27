@@ -1,12 +1,13 @@
 import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
-import 'package:Reflections/features/search/presentation/controller/search_controller.dart'
-    as sc;
+import 'package:Reflections/core/providers/note_provider.dart';
+import 'package:Reflections/core/providers/search_provider.dart';
 import 'package:Reflections/shared/widgets/note_card.dart';
+import 'package:Reflections/core/utils/app_navigator.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -17,13 +18,6 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final _textController = TextEditingController();
-  late final sc.SearchController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = Get.put(sc.SearchController());
-  }
 
   @override
   void dispose() {
@@ -31,13 +25,16 @@ class _SearchPageState extends State<SearchPage> {
     super.dispose();
   }
 
-  void _onClear() {
+  void _onClear(SearchProvider searchProvider) {
     _textController.clear();
-    _controller.clear();
+    searchProvider.clear();
   }
 
   @override
   Widget build(BuildContext context) {
+    final searchProvider = context.watch<SearchProvider>();
+    final noteProvider = context.watch<NoteProvider>();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -59,34 +56,32 @@ class _SearchPageState extends State<SearchPage> {
                   AppSpacing.h20,
 
                   // ─── Search Field ──────────────────────────────────────
-                  Obx(
-                    () => TextField(
-                      controller: _textController,
-                      onChanged: _controller.search,
-                      style: AppFontManager.bodyMedium.copyWith(
-                        color: AppColors.textPrimary,
+                  TextField(
+                    controller: _textController,
+                    onChanged: (val) => searchProvider.search(val, noteProvider.notes),
+                    style: AppFontManager.bodyMedium.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Search your thoughts...',
+                      hintStyle: AppFontManager.bodyMedium.copyWith(
+                        color: AppColors.textHint,
                       ),
-                      decoration: InputDecoration(
-                        hintText: 'Search your thoughts...',
-                        hintStyle: AppFontManager.bodyMedium.copyWith(
-                          color: AppColors.textHint,
-                        ),
-                        prefixIcon: Icon(
-                          Icons.search_rounded,
-                          color: AppColors.primaryMedium,
-                          size: 20.sp,
-                        ),
-                        suffixIcon: _controller.query.value.isNotEmpty
-                            ? GestureDetector(
-                                onTap: _onClear,
-                                child: Icon(
-                                  Icons.close_rounded,
-                                  color: AppColors.textHint,
-                                  size: 18.sp,
-                                ),
-                              )
-                            : null,
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: AppColors.primaryMedium,
+                        size: 20.sp,
                       ),
+                      suffixIcon: searchProvider.query.isNotEmpty
+                          ? GestureDetector(
+                              onTap: () => _onClear(searchProvider),
+                              child: Icon(
+                                Icons.close_rounded,
+                                color: AppColors.textHint,
+                                size: 18.sp,
+                              ),
+                            )
+                          : null,
                     ),
                   ),
                 ],
@@ -104,22 +99,28 @@ class _SearchPageState extends State<SearchPage> {
 
             // ─── Results ─────────────────────────────────────────────────
             Expanded(
-              child: Obx(() {
-                if (!_controller.hasSearched.value) {
+              child: Builder(builder: (context) {
+                if (!searchProvider.hasSearched) {
                   return _SearchIdleState();
                 }
-                if (_controller.results.isEmpty) {
-                  return _NoResultsState(query: _controller.query.value);
+                if (searchProvider.results.isEmpty) {
+                  return _NoResultsState(query: searchProvider.query);
                 }
                 return ListView.builder(
                   physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 20.w,
-                    vertical: 8.h,
+                  padding: EdgeInsets.only(
+                    left: 20.w,
+                    right: 20.w,
+                    top: 8.h,
+                    bottom: 100.h, // Space for frosted floating bottom nav!
                   ),
-                  itemCount: _controller.results.length,
+                  itemCount: searchProvider.results.length,
                   itemBuilder: (context, index) {
-                    return NoteCard(note: _controller.results[index]);
+                    final note = searchProvider.results[index];
+                    return NoteCard(
+                      note: note,
+                      onTap: () => AppNavigator.goToAddNote(note: note),
+                    );
                   },
                 );
               }),

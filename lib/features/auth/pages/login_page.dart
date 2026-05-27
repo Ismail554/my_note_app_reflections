@@ -2,14 +2,14 @@ import 'package:Reflections/core/constants/app_assets.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:Reflections/core/constants/app_strings.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
 import 'package:Reflections/core/utils/app_validation.dart';
 import 'package:Reflections/core/widgets/custom_button.dart';
-import 'package:Reflections/features/auth/presentation/controllers/login_controller.dart';
+import 'package:Reflections/core/providers/login_provider.dart';
 
 class LoginPage extends StatelessWidget {
   LoginPage({super.key});
@@ -17,10 +17,11 @@ class LoginPage extends StatelessWidget {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final LoginController _controller = Get.put(LoginController());
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<LoginProvider>();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -99,37 +100,35 @@ class LoginPage extends StatelessWidget {
                       ),
                       AppSpacing.h16,
                       // Password field
-                      Obx(
-                        () => TextFormField(
-                          controller: _passwordController,
-                          obscureText: _controller.obscurePassword.value,
-                          style: AppFontManager.bodyMedium.copyWith(
-                            color: AppColors.textPrimary,
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: provider.obscurePassword,
+                        style: AppFontManager.bodyMedium.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        validator: AppValidation.password,
+                        decoration: InputDecoration(
+                          hintText: AppStrings.loginPasswordHint,
+                          prefixIcon: Icon(
+                            Icons.lock_outline_rounded,
+                            color: AppColors.textHint,
+                            size: 20.sp,
                           ),
-                          validator: AppValidation.password,
-                          decoration: InputDecoration(
-                            hintText: AppStrings.loginPasswordHint,
-                            prefixIcon: Icon(
-                              Icons.lock_outline_rounded,
-                              color: AppColors.textHint,
-                              size: 20.sp,
-                            ),
-                            suffixIcon: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                GestureDetector(
-                                  onTap: _controller.togglePasswordVisibility,
-                                  child: Icon(
-                                    _controller.obscurePassword.value
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                    color: AppColors.textHint,
-                                    size: 20.sp,
-                                  ),
+                          suffixIcon: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              GestureDetector(
+                                onTap: provider.togglePasswordVisibility,
+                                child: Icon(
+                                  provider.obscurePassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: AppColors.textHint,
+                                  size: 20.sp,
                                 ),
-                                AppSpacing.w14,
-                              ],
-                            ),
+                              ),
+                              AppSpacing.w14,
+                            ],
                           ),
                         ),
                       ),
@@ -154,11 +153,8 @@ class LoginPage extends StatelessWidget {
                       ),
                       AppSpacing.h12,
                       // Error message
-                      Obx(() {
-                        if (_controller.errorMessage.value.isEmpty) {
-                          return const SizedBox.shrink();
-                        }
-                        return Padding(
+                      if (provider.errorMessage.isNotEmpty) ...[
+                        Padding(
                           padding: EdgeInsets.only(bottom: 12.h),
                           child: Container(
                             padding: EdgeInsets.symmetric(
@@ -170,21 +166,19 @@ class LoginPage extends StatelessWidget {
                               borderRadius: BorderRadius.circular(10.r),
                             ),
                             child: Text(
-                              _controller.errorMessage.value,
+                              provider.errorMessage,
                               style: AppFontManager.bodySmall.copyWith(
                                 color: AppColors.error,
                               ),
                             ),
                           ),
-                        );
-                      }),
-                      // Login Button
-                      Obx(
-                        () => AppPrimaryButton(
-                          label: AppStrings.loginButton,
-                          isLoading: _controller.isLoading.value,
-                          onPressed: _onLogin,
                         ),
+                      ],
+                      // Login Button
+                      AppPrimaryButton(
+                        label: AppStrings.loginButton,
+                        isLoading: provider.isLoading,
+                        onPressed: () => _onLogin(context, provider),
                       ),
                     ],
                   ),
@@ -208,7 +202,7 @@ class LoginPage extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                           recognizer: TapGestureRecognizer()
-                            ..onTap = _controller.navigateToRegister,
+                            ..onTap = provider.navigateToRegister,
                         ),
                       ],
                     ),
@@ -222,9 +216,9 @@ class LoginPage extends StatelessWidget {
     );
   }
 
-  void _onLogin() {
+  void _onLogin(BuildContext context, LoginProvider provider) {
     if (_formKey.currentState?.validate() ?? false) {
-      _controller.login(
+      provider.login(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );

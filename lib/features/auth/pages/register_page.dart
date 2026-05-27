@@ -1,14 +1,14 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:Reflections/core/constants/app_strings.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
 import 'package:Reflections/core/utils/app_validation.dart';
 import 'package:Reflections/core/widgets/custom_button.dart';
-import 'package:Reflections/features/auth/presentation/controllers/register_controller.dart';
+import 'package:Reflections/core/providers/register_provider.dart';
 
 class RegisterPage extends StatelessWidget {
   RegisterPage({super.key});
@@ -17,10 +17,11 @@ class RegisterPage extends StatelessWidget {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final RegisterController _controller = Get.put(RegisterController());
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<RegisterProvider>();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -83,31 +84,29 @@ class RegisterPage extends StatelessWidget {
                 AppSpacing.h14,
 
                 // ─── Password Field ────────────────────────────────────
-                Obx(
-                  () => TextFormField(
-                    textInputAction: TextInputAction.done,
-                    controller: _passwordController,
-                    obscureText: _controller.obscurePassword.value,
-                    style: AppFontManager.bodyMedium.copyWith(
-                      color: AppColors.textPrimary,
+                TextFormField(
+                  textInputAction: TextInputAction.done,
+                  controller: _passwordController,
+                  obscureText: provider.obscurePassword,
+                  style: AppFontManager.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                  validator: AppValidation.password,
+                  decoration: InputDecoration(
+                    hintText: AppStrings.registerPasswordHint,
+                    prefixIcon: Icon(
+                      Icons.lock_outline_rounded,
+                      color: AppColors.textHint,
+                      size: 20.sp,
                     ),
-                    validator: AppValidation.password,
-                    decoration: InputDecoration(
-                      hintText: AppStrings.registerPasswordHint,
-                      prefixIcon: Icon(
-                        Icons.lock_outline_rounded,
+                    suffixIcon: GestureDetector(
+                      onTap: provider.togglePasswordVisibility,
+                      child: Icon(
+                        provider.obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
                         color: AppColors.textHint,
                         size: 20.sp,
-                      ),
-                      suffixIcon: GestureDetector(
-                        onTap: _controller.togglePasswordVisibility,
-                        child: Icon(
-                          _controller.obscurePassword.value
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: AppColors.textHint,
-                          size: 20.sp,
-                        ),
                       ),
                     ),
                   ),
@@ -115,11 +114,8 @@ class RegisterPage extends StatelessWidget {
                 AppSpacing.h32,
 
                 // ─── Error Message ─────────────────────────────────────
-                Obx(() {
-                  if (_controller.errorMessage.value.isEmpty) {
-                    return const SizedBox.shrink();
-                  }
-                  return Padding(
+                if (provider.errorMessage.isNotEmpty) ...[
+                  Padding(
                     padding: EdgeInsets.only(bottom: 16.h),
                     child: Container(
                       padding: EdgeInsets.symmetric(
@@ -131,22 +127,20 @@ class RegisterPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10.r),
                       ),
                       child: Text(
-                        _controller.errorMessage.value,
+                        provider.errorMessage,
                         style: AppFontManager.bodySmall.copyWith(
                           color: AppColors.error,
                         ),
                       ),
                     ),
-                  );
-                }),
+                  ),
+                ],
 
                 // ─── Register Button ───────────────────────────────────
-                Obx(
-                  () => AppPrimaryButton(
-                    label: AppStrings.registerButton,
-                    isLoading: _controller.isLoading.value,
-                    onPressed: _onRegister,
-                  ),
+                AppPrimaryButton(
+                  label: AppStrings.registerButton,
+                  isLoading: provider.isLoading,
+                  onPressed: () => _onRegister(provider),
                 ),
                 AppSpacing.h28,
 
@@ -163,7 +157,7 @@ class RegisterPage extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                           recognizer: TapGestureRecognizer()
-                            ..onTap = _controller.navigateToLogin,
+                            ..onTap = provider.navigateToLogin,
                         ),
                       ],
                     ),
@@ -178,9 +172,9 @@ class RegisterPage extends StatelessWidget {
     );
   }
 
-  void _onRegister() {
+  void _onRegister(RegisterProvider provider) {
     if (_formKey.currentState?.validate() ?? false) {
-      _controller.register(
+      provider.register(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),

@@ -1,12 +1,16 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:Reflections/app.dart';
-import 'package:Reflections/core/services/auth_service.dart';
-import 'package:Reflections/core/services/note_service.dart';
-import 'package:Reflections/core/services/user_service.dart';
+import 'package:Reflections/core/localization/app_translations.dart';
+import 'package:Reflections/core/providers/auth_provider.dart';
+import 'package:Reflections/core/providers/note_provider.dart';
+import 'package:Reflections/core/providers/login_provider.dart';
+import 'package:Reflections/core/providers/register_provider.dart';
+import 'package:Reflections/core/providers/search_provider.dart';
+import 'package:Reflections/core/providers/settings_provider.dart';
+import 'package:Reflections/core/providers/splash_provider.dart';
 import 'package:Reflections/firebase_options.dart';
 import 'package:Reflections/features/todo/state/todo_provider.dart';
 import 'package:Reflections/features/habit/state/habit_provider.dart';
@@ -21,14 +25,17 @@ void main() async {
   // Local Notifications & Timed Alarms Init
   await NotificationService.instance.initialize();
 
-  // Firebase Services
-  Get.put(AuthService());
-  Get.put(UserService());
-  Get.put(NoteService());
-
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider.value(value: LanguageProvider.instance),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => NoteProvider()),
+        ChangeNotifierProvider(create: (_) => LoginProvider()),
+        ChangeNotifierProvider(create: (_) => RegisterProvider()),
+        ChangeNotifierProvider(create: (_) => SearchProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => SplashProvider()),
         ChangeNotifierProvider(create: (_) => TodoProvider()),
         ChangeNotifierProvider(create: (_) => HabitProvider()),
         ChangeNotifierProvider(create: (_) => ReminderProvider()),

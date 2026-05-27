@@ -1,13 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:get/get.dart';
+import 'package:flutter/foundation.dart';
 import 'package:Reflections/shared/models/note_model.dart';
 
-class NoteService extends GetxService {
+class NoteService {
+  static final NoteService instance = NoteService._internal();
+  NoteService._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  static NoteService get to => Get.find();
+  static NoteService get to => instance;
 
   String? get uid => _auth.currentUser?.uid;
 
@@ -30,11 +33,7 @@ class NoteService extends GetxService {
           return notes;
         })
         .handleError((error) {
-          Get.snackbar(
-            'Sync Error',
-            'Check your Firestore indexes: $error',
-            snackPosition: SnackPosition.BOTTOM,
-          );
+          debugPrint('Sync Error: $error');
         });
   }
 
@@ -51,11 +50,7 @@ class NoteService extends GetxService {
           return notes;
         })
         .handleError((error) {
-          Get.snackbar(
-            'Sync Error',
-            'Check your Firestore indexes: $error',
-            snackPosition: SnackPosition.BOTTOM,
-          );
+          debugPrint('Sync Error: $error');
         });
   }
 

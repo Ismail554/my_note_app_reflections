@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
 import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:Reflections/core/widgets/custom_button.dart';
-import 'package:Reflections/features/profile/presentation/controller/settings_controller.dart';
+import 'package:Reflections/core/providers/settings_provider.dart';
 
 class EditProfileSheet extends StatefulWidget {
-  final SettingsController controller;
+  final SettingsProvider provider;
 
-  const EditProfileSheet({super.key, required this.controller});
+  const EditProfileSheet({super.key, required this.provider});
 
   @override
   State<EditProfileSheet> createState() => _EditProfileSheetState();
@@ -19,12 +18,12 @@ class EditProfileSheet extends StatefulWidget {
 class _EditProfileSheetState extends State<EditProfileSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  final RxBool _isSaving = false.obs;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.controller.displayName.value);
+    _nameController = TextEditingController(text: widget.provider.displayName);
   }
 
   @override
@@ -35,11 +34,17 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
 
   Future<void> _onSave() async {
     if (_formKey.currentState?.validate() ?? false) {
-      _isSaving.value = true;
-      final success = await widget.controller.updateProfileName(_nameController.text.trim());
-      _isSaving.value = false;
-      if (success) {
-        Get.back();
+      setState(() {
+        _isSaving = true;
+      });
+      final success = await widget.provider.updateProfileName(_nameController.text.trim());
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+        if (success) {
+          Navigator.of(context).pop();
+        }
       }
     }
   }
@@ -75,7 +80,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
                 ),
               ),
             ),
-            
+
             Text(
               'Edit Profile',
               style: AppFontManager.headlineLarge,
@@ -110,12 +115,10 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
             ),
             AppSpacing.h28,
 
-            Obx(
-              () => AppPrimaryButton(
-                label: 'Save Changes',
-                isLoading: _isSaving.value,
-                onPressed: _onSave,
-              ),
+            AppPrimaryButton(
+              label: 'Save Changes',
+              isLoading: _isSaving,
+              onPressed: _onSave,
             ),
           ],
         ),

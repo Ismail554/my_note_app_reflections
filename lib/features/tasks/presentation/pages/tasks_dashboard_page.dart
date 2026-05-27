@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
+import 'package:provider/provider.dart';
+import 'package:Reflections/core/providers/note_provider.dart';
 import 'package:Reflections/features/todo/presentation/pages/todo_list_page.dart';
 import 'package:Reflections/features/habit/presentation/pages/habit_tracker_page.dart';
 import 'package:Reflections/features/reminder/presentation/pages/reminder_manager_page.dart';
@@ -20,11 +22,36 @@ class _TasksDashboardPageState extends State<TasksDashboardPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    final noteProvider = Provider.of<NoteProvider>(context, listen: false);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: noteProvider.selectedTasksTabIndex,
+    );
+
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        noteProvider.setSelectedTasksTabIndex(_tabController.index);
+      }
+    });
+
+    noteProvider.addListener(_onNoteProviderChange);
+  }
+
+  void _onNoteProviderChange() {
+    if (!mounted) return;
+    final targetIndex = Provider.of<NoteProvider>(context, listen: false).selectedTasksTabIndex;
+    if (_tabController.index != targetIndex) {
+      _tabController.animateTo(targetIndex);
+    }
   }
 
   @override
   void dispose() {
+    // Check if context is still valid or use a try-catch to avoid issues when disposing
+    try {
+      Provider.of<NoteProvider>(context, listen: false).removeListener(_onNoteProviderChange);
+    } catch (_) {}
     _tabController.dispose();
     super.dispose();
   }

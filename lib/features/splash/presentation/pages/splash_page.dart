@@ -1,11 +1,11 @@
 import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
 import 'package:Reflections/core/constants/app_strings.dart';
-import 'package:Reflections/features/splash/presentation/controller/splash_controller.dart';
+import 'package:Reflections/core/providers/splash_provider.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -24,8 +24,10 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    // Register the controller
-    Get.put(SplashController());
+    // Initialize the splash timer
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<SplashProvider>().initialize();
+    });
 
     // Fade + scale in for logo/text
     _fadeController = AnimationController(

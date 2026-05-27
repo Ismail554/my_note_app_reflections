@@ -1,10 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:get/get.dart';
 
-class AuthService extends GetxService {
+class AuthService {
+  static final AuthService instance = AuthService._internal();
+  AuthService._internal();
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  static AuthService get to => Get.find();
+  static AuthService get to => instance;
 
   User? get currentUser => _auth.currentUser;
 

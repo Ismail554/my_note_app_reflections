@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:get/get.dart';
 
-class UserService extends GetxService {
+class UserService {
+  static final UserService instance = UserService._internal();
+  UserService._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  static UserService get to => Get.find();
+  static UserService get to => instance;
 
   Future<void> createUserProfile({
     required String uid,

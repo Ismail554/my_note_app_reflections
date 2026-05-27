@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
 import 'package:Reflections/core/constants/app_constants.dart';
-import 'package:Reflections/features/home/presentation/controller/home_controller.dart';
-import 'package:Reflections/features/profile/presentation/controller/settings_controller.dart';
+import 'package:Reflections/core/providers/note_provider.dart';
+import 'package:Reflections/core/providers/settings_provider.dart';
 import 'package:Reflections/features/profile/presentation/widgets/info_tile.dart';
 import 'package:Reflections/features/profile/presentation/widgets/logout_button.dart';
 import 'package:Reflections/features/profile/presentation/widgets/profile_card.dart';
@@ -14,31 +14,33 @@ import 'package:Reflections/features/profile/presentation/widgets/settings_tile.
 import 'package:Reflections/features/profile/presentation/widgets/toggle_tile.dart';
 import 'package:Reflections/features/profile/presentation/widgets/edit_profile_sheet.dart';
 import 'package:Reflections/features/profile/presentation/widgets/change_password_sheet.dart';
+import 'package:Reflections/core/localization/app_translations.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
-  void _showEditProfile(BuildContext context, SettingsController controller) {
+  void _showEditProfile(BuildContext context, SettingsProvider provider) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => EditProfileSheet(controller: controller),
+      builder: (context) => EditProfileSheet(provider: provider),
     );
   }
 
-  void _showChangePassword(BuildContext context, SettingsController controller) {
+  void _showChangePassword(BuildContext context, SettingsProvider provider) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ChangePasswordSheet(controller: controller),
+      builder: (context) => ChangePasswordSheet(provider: provider),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(SettingsController());
+    final settingsProvider = context.watch<SettingsProvider>();
+    final noteProvider = context.watch<NoteProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -50,154 +52,139 @@ class SettingsPage extends StatelessWidget {
             AppSpacing.h20,
 
             // ─── Page Title ───────────────────────────────────────────────
-            Obx(() => Text('settings'.tr, style: AppFontManager.displayMedium)),
+            Text('settings'.tr, style: AppFontManager.displayMedium),
             AppSpacing.h4,
-            Obx(() => Text(
+            Text(
               'settingsSubtitle'.tr,
               style: AppFontManager.bodySmall,
-            )),
+            ),
             AppSpacing.h28,
 
             // ─── Profile Card ─────────────────────────────────────────────
             GestureDetector(
-              onTap: () => _showEditProfile(context, controller),
-              child: Obx(
-                () => ProfileCard(
-                  name: controller.displayName.value,
-                  email: controller.email.value,
-                ),
+              onTap: () => _showEditProfile(context, settingsProvider),
+              child: ProfileCard(
+                name: settingsProvider.displayName,
+                email: settingsProvider.email,
               ),
             ),
             AppSpacing.h28,
 
             // ─── Account Section ──────────────────────────────────────────
-            Obx(() => SectionLabel(label: 'account'.tr)),
+            SectionLabel(label: 'account'.tr),
             AppSpacing.h10,
-            Obx(() => SettingsTile(
+            SettingsTile(
               icon: Icons.person_outline_rounded,
               label: 'editProfile'.tr,
-              onTap: () => _showEditProfile(context, controller),
-            )),
-            Obx(() => SettingsTile(
+              onTap: () => _showEditProfile(context, settingsProvider),
+            ),
+            SettingsTile(
               icon: Icons.lock_outline_rounded,
               label: 'changePassword'.tr,
-              onTap: () => _showChangePassword(context, controller),
-            )),
+              onTap: () => _showChangePassword(context, settingsProvider),
+            ),
 
             AppSpacing.h24,
 
             // ─── Preferences Section ──────────────────────────────────────
-            Obx(() => SectionLabel(label: 'preferences'.tr)),
+            SectionLabel(label: 'preferences'.tr),
             AppSpacing.h10,
-            Obx(
-              () => ToggleTile(
-                icon: Icons.notifications_outlined,
-                label: 'notifications'.tr,
-                value: controller.notificationsEnabled.value,
-                onChanged: controller.toggleNotifications,
-              ),
+            ToggleTile(
+              icon: Icons.notifications_outlined,
+              label: 'notifications'.tr,
+              value: settingsProvider.notificationsEnabled,
+              onChanged: settingsProvider.toggleNotifications,
             ),
-            Obx(
-              () => ToggleTile(
-                icon: Icons.save_outlined,
-                label: 'autoSaveDrafts'.tr,
-                value: controller.autoSaveEnabled.value,
-                onChanged: controller.toggleAutoSave,
-              ),
+            ToggleTile(
+              icon: Icons.save_outlined,
+              label: 'autoSaveDrafts'.tr,
+              value: settingsProvider.autoSaveEnabled,
+              onChanged: settingsProvider.toggleAutoSave,
             ),
-            Obx(
-              () => SettingsTile(
-                icon: Icons.language_rounded,
-                label: 'language'.tr,
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      controller.currentLanguage.value,
-                      style: AppFontManager.bodyMedium.copyWith(
-                        color: AppColors.primaryMedium,
-                        fontWeight: FontWeight.w600,
-                      ),
+            SettingsTile(
+              icon: Icons.language_rounded,
+              label: 'language'.tr,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    settingsProvider.currentLanguage,
+                    style: AppFontManager.bodyMedium.copyWith(
+                      color: AppColors.primaryMedium,
+                      fontWeight: FontWeight.w600,
                     ),
-                    AppSpacing.w6,
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: AppColors.textHint,
-                      size: 14.r,
-                    ),
-                  ],
-                ),
-                onTap: () => _showLanguageDialog(context, controller),
+                  ),
+                  AppSpacing.w6,
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: AppColors.textHint,
+                    size: 14.r,
+                  ),
+                ],
               ),
+              onTap: () => _showLanguageDialog(context, settingsProvider),
             ),
 
             AppSpacing.h24,
 
             // ─── Info Section ─────────────────────────────────────────────
-            Obx(() => SectionLabel(label: 'more'.tr)),
+            SectionLabel(label: 'more'.tr),
             AppSpacing.h10,
-            Obx(() {
-              final count = Get.isRegistered<HomeController>()
-                  ? Get.find<HomeController>().notes.length
-                  : 0;
-              return InfoTile(
-                icon: Icons.edit_note_rounded,
-                label: 'totalNotes'.tr,
-                value: '$count',
-              );
-            }),
-            Obx(() => SettingsTile(
+            InfoTile(
+              icon: Icons.edit_note_rounded,
+              label: 'totalNotes'.tr,
+              value: '${noteProvider.notes.length}',
+            ),
+            SettingsTile(
               icon: Icons.info_outline_rounded,
               label: 'aboutReflections'.tr,
               onTap: () => _showAboutDialog(context),
-            )),
+            ),
 
             AppSpacing.h28,
 
             // ─── Logout ───────────────────────────────────────────────────
-            Obx(() => LogoutButton(onTap: controller.logout)),
-            AppSpacing.h40,
+            LogoutButton(onTap: settingsProvider.logout),
+            AppSpacing.h120, // Bottom padding to prevent floating bottom nav overlap
           ],
         ),
       ),
     );
   }
 
-  void _showLanguageDialog(BuildContext context, SettingsController controller) {
+  void _showLanguageDialog(BuildContext context, SettingsProvider provider) {
     showDialog(
       context: context,
-      builder: (context) => Obx(
-        () => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.r),
-          ),
-          backgroundColor: AppColors.surface,
-          title: Text('selectLanguage'.tr, style: AppFontManager.headlineMedium),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                title: Text('English', style: AppFontManager.bodyMedium),
-                trailing: controller.currentLanguage.value == 'English'
-                    ? const Icon(Icons.check, color: AppColors.primaryMedium)
-                    : null,
-                onTap: () {
-                  controller.changeLanguage('en');
-                  Navigator.of(context).pop();
-                },
-              ),
-              ListTile(
-                title: Text('Español', style: AppFontManager.bodyMedium),
-                trailing: controller.currentLanguage.value == 'Español'
-                    ? const Icon(Icons.check, color: AppColors.primaryMedium)
-                    : null,
-                onTap: () {
-                  controller.changeLanguage('es');
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          ),
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        backgroundColor: AppColors.surface,
+        title: Text('selectLanguage'.tr, style: AppFontManager.headlineMedium),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text('English', style: AppFontManager.bodyMedium),
+              trailing: provider.currentLanguage == 'English'
+                  ? const Icon(Icons.check, color: AppColors.primaryMedium)
+                  : null,
+              onTap: () {
+                provider.changeLanguage('en');
+                Navigator.of(context).pop();
+              },
+            ),
+            ListTile(
+              title: Text('Español', style: AppFontManager.bodyMedium),
+              trailing: provider.currentLanguage == 'Español'
+                  ? const Icon(Icons.check, color: AppColors.primaryMedium)
+                  : null,
+              onTap: () {
+                provider.changeLanguage('es');
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
         ),
       ),
     );

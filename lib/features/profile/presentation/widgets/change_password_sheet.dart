@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
 import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:Reflections/core/widgets/custom_button.dart';
-import 'package:Reflections/features/profile/presentation/controller/settings_controller.dart';
+import 'package:Reflections/core/providers/settings_provider.dart';
 
 class ChangePasswordSheet extends StatefulWidget {
-  final SettingsController controller;
+  final SettingsProvider provider;
 
-  const ChangePasswordSheet({super.key, required this.controller});
+  const ChangePasswordSheet({super.key, required this.provider});
 
   @override
   State<ChangePasswordSheet> createState() => _ChangePasswordSheetState();
@@ -21,11 +20,11 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
-  final RxBool _obscureCurrent = true.obs;
-  final RxBool _obscureNew = true.obs;
-  final RxBool _obscureConfirm = true.obs;
-  final RxBool _isSaving = false.obs;
+
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -37,14 +36,20 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
 
   Future<void> _onChange() async {
     if (_formKey.currentState?.validate() ?? false) {
-      _isSaving.value = true;
-      final success = await widget.controller.changePassword(
+      setState(() {
+        _isSaving = true;
+      });
+      final success = await widget.provider.changePassword(
         _currentPasswordController.text,
         _newPasswordController.text,
       );
-      _isSaving.value = false;
-      if (success) {
-        Get.back();
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+        if (success) {
+          Navigator.of(context).pop();
+        }
       }
     }
   }
@@ -81,7 +86,7 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
                   ),
                 ),
               ),
-              
+
               Text(
                 'Change Password',
                 style: AppFontManager.headlineLarge,
@@ -94,125 +99,129 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
               AppSpacing.h24,
 
               // Current Password
-              Obx(
-                () => TextFormField(
-                  controller: _currentPasswordController,
-                  obscureText: _obscureCurrent.value,
-                  style: AppFontManager.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
+              TextFormField(
+                controller: _currentPasswordController,
+                obscureText: _obscureCurrent,
+                style: AppFontManager.bodyMedium.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+                validator: (val) {
+                  if (val == null || val.isEmpty) {
+                    return 'Current password required';
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  hintText: 'Current Password',
+                  prefixIcon: Icon(
+                    Icons.lock_open_rounded,
+                    color: AppColors.textHint,
+                    size: 20.sp,
                   ),
-                  validator: (val) {
-                    if (val == null || val.isEmpty) {
-                      return 'Current password required';
-                    }
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Current Password',
-                    prefixIcon: Icon(
-                      Icons.lock_open_rounded,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureCurrent
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
                       color: AppColors.textHint,
                       size: 20.sp,
                     ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureCurrent.value
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        color: AppColors.textHint,
-                        size: 20.sp,
-                      ),
-                      onPressed: () => _obscureCurrent.toggle(),
-                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureCurrent = !_obscureCurrent;
+                      });
+                    },
                   ),
                 ),
               ),
               AppSpacing.h16,
 
               // New Password
-              Obx(
-                () => TextFormField(
-                  controller: _newPasswordController,
-                  obscureText: _obscureNew.value,
-                  style: AppFontManager.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
+              TextFormField(
+                controller: _newPasswordController,
+                obscureText: _obscureNew,
+                style: AppFontManager.bodyMedium.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+                validator: (val) {
+                  if (val == null || val.isEmpty) {
+                    return 'New password required';
+                  }
+                  if (val.length < 6) {
+                    return 'Password must be at least 6 characters';
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  hintText: 'New Password',
+                  prefixIcon: Icon(
+                    Icons.lock_outline_rounded,
+                    color: AppColors.textHint,
+                    size: 20.sp,
                   ),
-                  validator: (val) {
-                    if (val == null || val.isEmpty) {
-                      return 'New password required';
-                    }
-                    if (val.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'New Password',
-                    prefixIcon: Icon(
-                      Icons.lock_outline_rounded,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureNew
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
                       color: AppColors.textHint,
                       size: 20.sp,
                     ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureNew.value
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        color: AppColors.textHint,
-                        size: 20.sp,
-                      ),
-                      onPressed: () => _obscureNew.toggle(),
-                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureNew = !_obscureNew;
+                      });
+                    },
                   ),
                 ),
               ),
               AppSpacing.h16,
 
               // Confirm New Password
-              Obx(
-                () => TextFormField(
-                  controller: _confirmPasswordController,
-                  obscureText: _obscureConfirm.value,
-                  style: AppFontManager.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
+              TextFormField(
+                controller: _confirmPasswordController,
+                obscureText: _obscureConfirm,
+                style: AppFontManager.bodyMedium.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+                validator: (val) {
+                  if (val == null || val.isEmpty) {
+                    return 'Confirm your new password';
+                  }
+                  if (val != _newPasswordController.text) {
+                    return 'Passwords do not match';
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  hintText: 'Confirm New Password',
+                  prefixIcon: Icon(
+                    Icons.lock_outline_rounded,
+                    color: AppColors.textHint,
+                    size: 20.sp,
                   ),
-                  validator: (val) {
-                    if (val == null || val.isEmpty) {
-                      return 'Confirm your new password';
-                    }
-                    if (val != _newPasswordController.text) {
-                      return 'Passwords do not match';
-                    }
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Confirm New Password',
-                    prefixIcon: Icon(
-                      Icons.lock_outline_rounded,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirm
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
                       color: AppColors.textHint,
                       size: 20.sp,
                     ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureConfirm.value
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        color: AppColors.textHint,
-                        size: 20.sp,
-                      ),
-                      onPressed: () => _obscureConfirm.toggle(),
-                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureConfirm = !_obscureConfirm;
+                      });
+                    },
                   ),
                 ),
               ),
               AppSpacing.h28,
 
-              Obx(
-                () => AppPrimaryButton(
-                  label: 'Change Password',
-                  isLoading: _isSaving.value,
-                  onPressed: _onChange,
-                ),
+              AppPrimaryButton(
+                label: 'Change Password',
+                isLoading: _isSaving,
+                onPressed: _onChange,
               ),
             ],
           ),

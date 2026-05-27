@@ -1,7 +1,29 @@
-import 'package:get/get.dart';
+import 'package:flutter/material.dart';
 
-class AppTranslations extends Translations {
-  @override
+class LanguageProvider extends ChangeNotifier {
+  static final LanguageProvider instance = LanguageProvider._internal();
+  LanguageProvider._internal();
+
+  Locale _locale = const Locale('en', 'US');
+  Locale get locale => _locale;
+
+  void changeLocale(Locale newLocale) {
+    _locale = newLocale;
+    notifyListeners();
+  }
+}
+
+extension TranslationExtension on String {
+  String get tr {
+    final lang = LanguageProvider.instance.locale.languageCode;
+    final country = LanguageProvider.instance.locale.countryCode ?? 'US';
+    final localeKey = '${lang}_$country';
+    final translations = AppTranslations().keys[localeKey] ?? AppTranslations().keys['en_US']!;
+    return translations[this] ?? this;
+  }
+}
+
+class AppTranslations {
   Map<String, Map<String, String>> get keys => {
         'en_US': {
           'appName': 'Reflections',

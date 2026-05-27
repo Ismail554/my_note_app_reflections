@@ -1,10 +1,10 @@
 import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
-import 'package:Reflections/features/activity/presentation/controller/archive_controller.dart';
+import 'package:Reflections/core/providers/note_provider.dart';
 import 'package:Reflections/shared/widgets/note_card.dart';
 
 class ArchivePage extends StatelessWidget {
@@ -12,7 +12,8 @@ class ArchivePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ArchiveController());
+    final noteProvider = context.watch<NoteProvider>();
+    final archivedList = noteProvider.archivedNotes;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -40,8 +41,8 @@ class ArchivePage extends StatelessWidget {
 
             // ─── Content ─────────────────────────────────────────────────
             Expanded(
-              child: Obx(() {
-                if (controller.isLoading.value) {
+              child: Builder(builder: (context) {
+                if (noteProvider.isLoading) {
                   return const Center(
                     child: CircularProgressIndicator(
                       color: AppColors.primaryMedium,
@@ -49,20 +50,22 @@ class ArchivePage extends StatelessWidget {
                   );
                 }
 
-                if (controller.archivedNotes.isEmpty) {
+                if (archivedList.isEmpty) {
                   return _ArchiveEmptyState();
                 }
 
                 return ListView.builder(
                   shrinkWrap: true,
                   physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 20.w,
-                    vertical: 16.h,
+                  padding: EdgeInsets.only(
+                    left: 20.w,
+                    right: 20.w,
+                    top: 16.h,
+                    bottom: 100.h, // Space for frosted floating bottom nav!
                   ),
-                  itemCount: controller.archivedNotes.length,
+                  itemCount: archivedList.length,
                   itemBuilder: (context, index) {
-                    final note = controller.archivedNotes[index];
+                    final note = archivedList[index];
                     return Dismissible(
                       key: Key(note.id),
                       direction: DismissDirection.horizontal,
@@ -70,9 +73,9 @@ class ArchivePage extends StatelessWidget {
                       secondaryBackground: _UnarchiveBackground(),
                       onDismissed: (direction) {
                         if (direction == DismissDirection.endToStart) {
-                          controller.unarchive(note);
+                          noteProvider.archiveNote(note.id, false);
                         } else {
-                          controller.deletePermanently(note.id);
+                          noteProvider.deletePermanently(note.id);
                         }
                       },
                       child: NoteCard(note: note),

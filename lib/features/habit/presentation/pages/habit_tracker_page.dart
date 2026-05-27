@@ -204,12 +204,168 @@ class _HabitTrackerPageState extends State<HabitTrackerPage> {
             physics: const BouncingScrollPhysics(),
             padding: EdgeInsets.symmetric(horizontal: 20.w),
             children: [
+              AppSpacing.h16,
+              _buildContributionGrid(provider),
+              AppSpacing.h24,
+              Text(
+                'My Active Habits',
+                style: AppFontManager.headlineMedium.copyWith(fontSize: 16.sp),
+              ),
+              AppSpacing.h12,
               ...provider.habits.map((habit) => _buildHabitCard(context, habit, days)),
-              AppSpacing.h80,
+              AppSpacing.h120, // Padding to avoid navigation button overlap
             ],
           ),
         );
       },
+    );
+  }
+
+  // GitHub contribution grid widget
+  Widget _buildContributionGrid(HabitProvider provider) {
+    final today = DateTime.now();
+    // Sunday of the week 17 weeks ago
+    final startOfCurrentWeek = today.subtract(Duration(days: today.weekday % 7));
+    final startDate = startOfCurrentWeek.subtract(const Duration(days: 17 * 7));
+
+    return Container(
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.calendar_view_month_rounded, color: AppColors.primaryMedium, size: 18.sp),
+              AppSpacing.w8,
+              Text(
+                'Consistency Grid',
+                style: AppFontManager.headlineMedium.copyWith(fontSize: 14.sp),
+              ),
+            ],
+          ),
+          AppSpacing.h16,
+
+          // 7 Rows (Sun to Sat) x 18 columns scrollable viewport
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: [
+                // Weekday initials labels
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) {
+                    return Container(
+                      height: 12.r,
+                      width: 14.r,
+                      margin: EdgeInsets.symmetric(vertical: 2.h),
+                      alignment: Alignment.center,
+                      child: Text(
+                        day,
+                        style: AppFontManager.caption.copyWith(
+                          fontSize: 8.sp,
+                          color: AppColors.textMuted,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                AppSpacing.w6,
+
+                // Grid columns
+                Row(
+                  children: List.generate(18, (colIndex) {
+                    return Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 2.w),
+                      child: Column(
+                        children: List.generate(7, (rowIndex) {
+                          final cellDate = startDate.add(Duration(days: colIndex * 7 + rowIndex));
+                          final isFuture = cellDate.isAfter(today);
+
+                          int completedCount = 0;
+                          if (!isFuture) {
+                            final dateStr = DateFormat('yyyy-MM-dd').format(cellDate);
+                            for (final habit in provider.habits) {
+                              if (habit.completedDays.contains(dateStr)) {
+                                completedCount++;
+                              }
+                            }
+                          }
+
+                          // Choose GitHub intensity colors
+                          Color color = AppColors.divider.withValues(alpha: 0.5);
+                          if (isFuture) {
+                            color = Colors.transparent;
+                          } else if (completedCount == 1) {
+                            color = AppColors.primaryMedium.withValues(alpha: 0.25);
+                          } else if (completedCount == 2) {
+                            color = AppColors.primaryMedium.withValues(alpha: 0.5);
+                          } else if (completedCount == 3) {
+                            color = AppColors.primaryMedium.withValues(alpha: 0.75);
+                          } else if (completedCount >= 4) {
+                            color = AppColors.primaryMedium;
+                          }
+
+                          return Tooltip(
+                            message: isFuture
+                                ? 'Future'
+                                : '${DateFormat('MMM d, y').format(cellDate)}: $completedCount habits completed',
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              width: 12.r,
+                              height: 12.r,
+                              margin: EdgeInsets.symmetric(vertical: 2.h),
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(2.5.r),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ),
+          AppSpacing.h12,
+
+          // Less to More Legend
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text('Less', style: AppFontManager.caption.copyWith(fontSize: 9.sp)),
+              AppSpacing.w4,
+              _buildLegendBox(AppColors.divider.withValues(alpha: 0.5)),
+              _buildLegendBox(AppColors.primaryMedium.withValues(alpha: 0.25)),
+              _buildLegendBox(AppColors.primaryMedium.withValues(alpha: 0.5)),
+              _buildLegendBox(AppColors.primaryMedium.withValues(alpha: 0.75)),
+              _buildLegendBox(AppColors.primaryMedium),
+              AppSpacing.w4,
+              Text('More', style: AppFontManager.caption.copyWith(fontSize: 9.sp)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendBox(Color color) {
+    return Container(
+      width: 9.r,
+      height: 9.r,
+      margin: EdgeInsets.symmetric(horizontal: 1.5.w),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(2.r),
+      ),
     );
   }
 
