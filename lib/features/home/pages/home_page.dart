@@ -10,6 +10,8 @@ import 'package:Reflections/features/home/presentation/widgets/folder_drawer.dar
 import 'package:Reflections/features/home/presentation/widgets/home_bottom_nav.dart';
 import 'package:Reflections/features/home/presentation/widgets/notes_tab.dart';
 
+import 'package:Reflections/features/tasks/presentation/pages/tasks_dashboard_page.dart';
+
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -17,9 +19,10 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final HomeController controller = Get.put(HomeController());
 
-    // The 4 tab bodies — IndexedStack keeps state alive
+    // The 5 tab bodies — IndexedStack keeps state alive
     final List<Widget> tabs = [
       NotesTab(controller: controller),
+      const TasksDashboardPage(),
       const SearchPage(),
       const ArchivePage(),
       const SettingsPage(),

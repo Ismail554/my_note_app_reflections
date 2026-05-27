@@ -24,6 +24,7 @@ class HomeBottomNav extends StatelessWidget {
       child: BottomNavigationBar(
         currentIndex: currentIndex,
         onTap: onTap,
+        type: BottomNavigationBarType.fixed,
         items: [
           BottomNavigationBarItem(
             icon: NavIcon(
@@ -34,22 +35,29 @@ class HomeBottomNav extends StatelessWidget {
           ),
           BottomNavigationBarItem(
             icon: NavIcon(
-              icon: Icons.search_rounded,
+              icon: Icons.playlist_add_check_rounded,
               isSelected: currentIndex == 1,
+            ),
+            label: 'Tasks',
+          ),
+          BottomNavigationBarItem(
+            icon: NavIcon(
+              icon: Icons.search_rounded,
+              isSelected: currentIndex == 2,
             ),
             label: 'Search',
           ),
           BottomNavigationBarItem(
             icon: NavIcon(
               icon: Icons.archive_outlined,
-              isSelected: currentIndex == 2,
+              isSelected: currentIndex == 3,
             ),
             label: 'Archive',
           ),
           BottomNavigationBarItem(
             icon: NavIcon(
               icon: Icons.settings_outlined,
-              isSelected: currentIndex == 3,
+              isSelected: currentIndex == 4,
             ),
             label: 'Settings',
           ),
