@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:Reflections/core/constants/app_strings.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
 import 'package:Reflections/core/constants/app_constants.dart';
@@ -43,7 +42,7 @@ class NotesTab extends StatelessWidget {
                           AppSpacing.h16,
                           Text(
                             controller.selectedFolder.value == 'All'
-                                ? AppStrings.homeTitle
+                                ? 'homeTitle'.tr
                                 : controller.selectedFolder.value,
                             style: AppFontManager.displayLarge.copyWith(
                               fontSize: 28.sp,
@@ -53,8 +52,8 @@ class NotesTab extends StatelessWidget {
                           AppSpacing.h8,
                           Text(
                             controller.selectedFolder.value == 'All'
-                                ? AppStrings.homeSubtitle
-                                : 'Notes in ${controller.selectedFolder.value}',
+                                ? 'homeSubtitle'.tr
+                                : '${'more'.tr.capitalizeFirst} in ${controller.selectedFolder.value}',
                             style: AppFontManager.bodyMedium,
                           ),
                           AppSpacing.h28,
@@ -65,8 +64,8 @@ class NotesTab extends StatelessWidget {
                   if (controller.filteredNotes.isEmpty)
                     SliverFillRemaining(
                       child: EmptyState(
-                        message: AppStrings.homeEmpty,
-                        actionLabel: AppStrings.homeEmptyAction,
+                        message: 'homeEmpty'.tr,
+                        actionLabel: 'homeEmptyAction'.tr,
                         onAction: controller.navigateToAddNote,
                       ),
                     )

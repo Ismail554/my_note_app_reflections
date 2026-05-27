@@ -9,6 +9,8 @@ class NoteModel {
   final String userId;
   final String category;
   final bool isArchived;
+  final int colorValue;
+  final bool isPinned;
 
   const NoteModel({
     required this.id,
@@ -19,6 +21,8 @@ class NoteModel {
     required this.userId,
     this.category = 'Reflections',
     this.isArchived = false,
+    this.colorValue = 0,
+    this.isPinned = false,
   });
 
   /// Creates a note model from firestore
@@ -36,6 +40,8 @@ class NoteModel {
       userId: map['userId'] as String? ?? '',
       category: map['category'] as String? ?? 'Reflections',
       isArchived: map['isArchived'] as bool? ?? false,
+      colorValue: map['colorValue'] as int? ?? 0,
+      isPinned: map['isPinned'] as bool? ?? false,
     );
   }
 
@@ -49,6 +55,8 @@ class NoteModel {
       'userId': userId,
       'category': category,
       'isArchived': isArchived,
+      'colorValue': colorValue,
+      'isPinned': isPinned,
     };
   }
 
@@ -93,6 +101,8 @@ class NoteModel {
     String? userId,
     String? category,
     bool? isArchived,
+    int? colorValue,
+    bool? isPinned,
   }) {
     return NoteModel(
       id: id ?? this.id,
@@ -103,6 +113,8 @@ class NoteModel {
       userId: userId ?? this.userId,
       category: category ?? this.category,
       isArchived: isArchived ?? this.isArchived,
+      colorValue: colorValue ?? this.colorValue,
+      isPinned: isPinned ?? this.isPinned,
     );
   }
 }

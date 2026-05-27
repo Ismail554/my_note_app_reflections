@@ -50,12 +50,12 @@ class SettingsPage extends StatelessWidget {
             AppSpacing.h20,
 
             // ─── Page Title ───────────────────────────────────────────────
-            Text('Settings', style: AppFontManager.displayMedium),
+            Obx(() => Text('settings'.tr, style: AppFontManager.displayMedium)),
             AppSpacing.h4,
-            Text(
-              'Manage your account and preferences.',
+            Obx(() => Text(
+              'settingsSubtitle'.tr,
               style: AppFontManager.bodySmall,
-            ),
+            )),
             AppSpacing.h28,
 
             // ─── Profile Card ─────────────────────────────────────────────
@@ -71,28 +71,28 @@ class SettingsPage extends StatelessWidget {
             AppSpacing.h28,
 
             // ─── Account Section ──────────────────────────────────────────
-            SectionLabel(label: 'Account'),
+            Obx(() => SectionLabel(label: 'account'.tr)),
             AppSpacing.h10,
-            SettingsTile(
+            Obx(() => SettingsTile(
               icon: Icons.person_outline_rounded,
-              label: 'Edit Profile',
+              label: 'editProfile'.tr,
               onTap: () => _showEditProfile(context, controller),
-            ),
-            SettingsTile(
+            )),
+            Obx(() => SettingsTile(
               icon: Icons.lock_outline_rounded,
-              label: 'Change Password',
+              label: 'changePassword'.tr,
               onTap: () => _showChangePassword(context, controller),
-            ),
+            )),
 
             AppSpacing.h24,
 
             // ─── Preferences Section ──────────────────────────────────────
-            SectionLabel(label: 'Preferences'),
+            Obx(() => SectionLabel(label: 'preferences'.tr)),
             AppSpacing.h10,
             Obx(
               () => ToggleTile(
                 icon: Icons.notifications_outlined,
-                label: 'Notifications',
+                label: 'notifications'.tr,
                 value: controller.notificationsEnabled.value,
                 onChanged: controller.toggleNotifications,
               ),
@@ -100,16 +100,41 @@ class SettingsPage extends StatelessWidget {
             Obx(
               () => ToggleTile(
                 icon: Icons.save_outlined,
-                label: 'Auto-save drafts',
+                label: 'autoSaveDrafts'.tr,
                 value: controller.autoSaveEnabled.value,
                 onChanged: controller.toggleAutoSave,
+              ),
+            ),
+            Obx(
+              () => SettingsTile(
+                icon: Icons.language_rounded,
+                label: 'language'.tr,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      controller.currentLanguage.value,
+                      style: AppFontManager.bodyMedium.copyWith(
+                        color: AppColors.primaryMedium,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    AppSpacing.w6,
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: AppColors.textHint,
+                      size: 14.r,
+                    ),
+                  ],
+                ),
+                onTap: () => _showLanguageDialog(context, controller),
               ),
             ),
 
             AppSpacing.h24,
 
             // ─── Info Section ─────────────────────────────────────────────
-            SectionLabel(label: 'More'),
+            Obx(() => SectionLabel(label: 'more'.tr)),
             AppSpacing.h10,
             Obx(() {
               final count = Get.isRegistered<HomeController>()
@@ -117,22 +142,62 @@ class SettingsPage extends StatelessWidget {
                   : 0;
               return InfoTile(
                 icon: Icons.edit_note_rounded,
-                label: 'Total Notes',
+                label: 'totalNotes'.tr,
                 value: '$count',
               );
             }),
-            SettingsTile(
+            Obx(() => SettingsTile(
               icon: Icons.info_outline_rounded,
-              label: 'About Reflections',
+              label: 'aboutReflections'.tr,
               onTap: () => _showAboutDialog(context),
-            ),
+            )),
 
             AppSpacing.h28,
 
             // ─── Logout ───────────────────────────────────────────────────
-            LogoutButton(onTap: controller.logout),
+            Obx(() => LogoutButton(onTap: controller.logout)),
             AppSpacing.h40,
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context, SettingsController controller) {
+    showDialog(
+      context: context,
+      builder: (context) => Obx(
+        () => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          backgroundColor: AppColors.surface,
+          title: Text('selectLanguage'.tr, style: AppFontManager.headlineMedium),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text('English', style: AppFontManager.bodyMedium),
+                trailing: controller.currentLanguage.value == 'English'
+                    ? const Icon(Icons.check, color: AppColors.primaryMedium)
+                    : null,
+                onTap: () {
+                  controller.changeLanguage('en');
+                  Navigator.of(context).pop();
+                },
+              ),
+              ListTile(
+                title: Text('Español', style: AppFontManager.bodyMedium),
+                trailing: controller.currentLanguage.value == 'Español'
+                    ? const Icon(Icons.check, color: AppColors.primaryMedium)
+                    : null,
+                onTap: () {
+                  controller.changeLanguage('es');
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Reflections/core/services/auth_service.dart';
 import 'package:Reflections/core/services/user_service.dart';
@@ -9,10 +10,32 @@ class SettingsController extends GetxController {
   final RxBool notificationsEnabled = true.obs;
   final RxBool autoSaveEnabled = true.obs;
 
+  final RxString currentLanguage = 'English'.obs;
+
   @override
   void onInit() {
     super.onInit();
     _loadUserData();
+    _initLanguage();
+  }
+
+  void _initLanguage() {
+    final locale = Get.locale ?? const Locale('en', 'US');
+    if (locale.languageCode == 'es') {
+      currentLanguage.value = 'Español';
+    } else {
+      currentLanguage.value = 'English';
+    }
+  }
+
+  void changeLanguage(String langCode) {
+    if (langCode == 'es') {
+      Get.updateLocale(const Locale('es', 'ES'));
+      currentLanguage.value = 'Español';
+    } else {
+      Get.updateLocale(const Locale('en', 'US'));
+      currentLanguage.value = 'English';
+    }
   }
 
   void _loadUserData() {

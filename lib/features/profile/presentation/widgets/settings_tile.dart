@@ -8,12 +8,14 @@ class SettingsTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   const SettingsTile({
     super.key,
     required this.icon,
     required this.label,
     required this.onTap,
+    this.trailing,
   });
 
   @override
@@ -48,7 +50,7 @@ class SettingsTile extends StatelessWidget {
                 ),
               ),
             ),
-            Icon(
+            trailing ?? Icon(
               Icons.arrow_forward_ios_rounded,
               color: AppColors.textHint,
               size: 14.r,

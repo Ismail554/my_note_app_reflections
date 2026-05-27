@@ -15,8 +15,17 @@ class HomeController extends GetxController {
 
   // Derived filtered notes
   List<NoteModel> get filteredNotes {
-    if (selectedFolder.value == 'All') return notes;
-    return notes.where((n) => n.category == selectedFolder.value).toList();
+    final list = selectedFolder.value == 'All'
+        ? notes.toList()
+        : notes.where((n) => n.category == selectedFolder.value).toList();
+
+    // Sort: pinned first, then by updatedAt descending
+    list.sort((a, b) {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return b.updatedAt.compareTo(a.updatedAt);
+    });
+    return list;
   }
 
   @override

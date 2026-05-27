@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:Reflections/core/utils/app_navigator.dart';
 import 'package:Reflections/features/add_new/presentation/pages/add_note_page.dart';
@@ -28,9 +29,29 @@ class AppRouterConfig {
       ),
       GoRoute(
         path: AppRoutes.addNote,
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final note = state.extra as NoteModel?;
-          return AddNotePage(note: note);
+          return CustomTransitionPage(
+            key: state.pageKey,
+            transitionDuration: const Duration(milliseconds: 300),
+            reverseTransitionDuration: const Duration(milliseconds: 250),
+            child: AddNotePage(note: note),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.0, 0.1),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                )),
+                child: FadeTransition(
+                  opacity: animation,
+                  child: child,
+                ),
+              );
+            },
+          );
         },
       ),
     ],
