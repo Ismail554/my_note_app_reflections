@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
-import 'package:Reflections/core/constants/app_constants.dart';
-import 'package:Reflections/features/habit/data/models/habit_model.dart';
 import 'package:Reflections/features/habit/state/habit_provider.dart';
-import 'package:Reflections/shared/widgets/empty_state.dart';
+import 'package:Reflections/features/habit/data/models/habit_model.dart';
+import 'package:Reflections/features/habit/presentation/widgets/heatmap_grid.dart';
 
 class HabitTrackerPage extends StatefulWidget {
   const HabitTrackerPage({super.key});
@@ -17,505 +15,430 @@ class HabitTrackerPage extends StatefulWidget {
 }
 
 class _HabitTrackerPageState extends State<HabitTrackerPage> {
-  final _nameController = TextEditingController();
-  final _descController = TextEditingController();
-  TimeOfDay? _selectedTime;
+  Map<String, int> _heatmapData = {};
 
   @override
-  void dispose() {
-    _nameController.dispose();
-    _descController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _loadHeatmap();
   }
 
-  List<DateTime> _getLast7Days() {
-    return List.generate(
-      7,
-      (index) => DateTime.now().subtract(Duration(days: 6 - index)),
-    );
-  }
-
-  void _showAddHabitSheet(BuildContext context) {
-    _nameController.clear();
-    _descController.clear();
-    _selectedTime = null;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 24.w,
-                right: 24.w,
-                top: 24.h,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24.h,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('New Habit', style: AppFontManager.headlineMedium),
-                  AppSpacing.h16,
-
-                  // Name Input
-                  TextField(
-                    controller: _nameController,
-                    autofocus: true,
-                    style: AppFontManager.bodyLarge,
-                    decoration: InputDecoration(
-                      hintText: 'Habit Name (e.g. Read Books, Meditate)',
-                      hintStyle: AppFontManager.bodyMedium.copyWith(color: AppColors.textHint),
-                      filled: true,
-                      fillColor: AppColors.inputFill,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: const BorderSide(color: AppColors.inputBorder),
-                      ),
-                    ),
-                  ),
-                  AppSpacing.h12,
-
-                  // Description Input
-                  TextField(
-                    controller: _descController,
-                    style: AppFontManager.bodyLarge,
-                    decoration: InputDecoration(
-                      hintText: 'Description or Goal',
-                      hintStyle: AppFontManager.bodyMedium.copyWith(color: AppColors.textHint),
-                      filled: true,
-                      fillColor: AppColors.inputFill,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: const BorderSide(color: AppColors.inputBorder),
-                      ),
-                    ),
-                  ),
-                  AppSpacing.h16,
-
-                  // Time reminder setting
-                  Row(
-                    children: [
-                      Icon(Icons.access_time_rounded, size: 18.sp, color: AppColors.primaryMedium),
-                      AppSpacing.w8,
-                      Text(
-                        _selectedTime == null
-                            ? 'No dynamic reminder alarm set'
-                            : 'Remind me at: ${_selectedTime!.format(context)}',
-                        style: AppFontManager.bodyMedium.copyWith(
-                          color: _selectedTime == null ? AppColors.textHint : AppColors.textPrimary,
-                        ),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () async {
-                          final picked = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.now(),
-                          );
-                          if (picked != null) {
-                            setModalState(() => _selectedTime = picked);
-                          }
-                        },
-                        child: Text('Set Time', style: AppFontManager.link),
-                      ),
-                    ],
-                  ),
-                  AppSpacing.h24,
-
-                  // Submit button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48.h,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryDark,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                      ),
-                      onPressed: () {
-                        if (_nameController.text.trim().isEmpty) return;
-                        String? alarmStr;
-                        if (_selectedTime != null) {
-                          final hr = _selectedTime!.hour.toString().padLeft(2, '0');
-                          final min = _selectedTime!.minute.toString().padLeft(2, '0');
-                          alarmStr = '$hr:$min';
-                        }
-                        context.read<HabitProvider>().addHabit(
-                              _nameController.text,
-                              _descController.text,
-                              alarmStr,
-                            );
-                        Navigator.pop(context);
-                      },
-                      child: Text(
-                        'Add Habit',
-                        style: AppFontManager.buttonLarge.copyWith(color: AppColors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
+  Future<void> _loadHeatmap() async {
+    final data = await context.read<HabitProvider>().getHeatmapData(daysBack: 140);
+    if (mounted) setState(() => _heatmapData = data);
   }
 
   @override
   Widget build(BuildContext context) {
-    final days = _getLast7Days();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final provider = context.watch<HabitProvider>();
+    final todayStr = DateTime.now().toIso8601String().substring(0, 10);
 
-    return Consumer<HabitProvider>(
-      builder: (context, provider, child) {
-        if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.primaryMedium));
-        }
-
-        if (provider.habits.isEmpty) {
-          return Scaffold(
-            backgroundColor: AppColors.background,
-            body: EmptyState(
-              message: 'Start tracking daily habits today.',
-              actionLabel: 'Create Habit',
-              onAction: () => _showAddHabitSheet(context),
-            ),
-          );
-        }
-
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => _showAddHabitSheet(context),
-            tooltip: 'Add Habit',
-            child: Icon(Icons.add_rounded, size: 24.sp),
-          ),
-          body: ListView(
-            physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            children: [
-              AppSpacing.h16,
-              _buildContributionGrid(provider),
-              AppSpacing.h24,
-              Text(
-                'My Active Habits',
-                style: AppFontManager.headlineMedium.copyWith(fontSize: 16.sp),
-              ),
-              AppSpacing.h12,
-              ...provider.habits.map((habit) => _buildHabitCard(context, habit, days)),
-              AppSpacing.h120, // Padding to avoid navigation button overlap
-            ],
-          ),
-        );
+    return RefreshIndicator(
+      onRefresh: () async {
+        await provider.refresh();
+        await _loadHeatmap();
       },
-    );
-  }
-
-  // GitHub contribution grid widget
-  Widget _buildContributionGrid(HabitProvider provider) {
-    final today = DateTime.now();
-    // Sunday of the week 17 weeks ago
-    final startOfCurrentWeek = today.subtract(Duration(days: today.weekday % 7));
-    final startDate = startOfCurrentWeek.subtract(const Duration(days: 17 * 7));
-
-    return Container(
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: AppColors.divider),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.calendar_view_month_rounded, color: AppColors.primaryMedium, size: 18.sp),
-              AppSpacing.w8,
-              Text(
-                'Consistency Grid',
-                style: AppFontManager.headlineMedium.copyWith(fontSize: 14.sp),
-              ),
-            ],
-          ),
-          AppSpacing.h16,
-
-          // 7 Rows (Sun to Sat) x 18 columns scrollable viewport
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: [
-                // Weekday initials labels
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) {
-                    return Container(
-                      height: 12.r,
-                      width: 14.r,
-                      margin: EdgeInsets.symmetric(vertical: 2.h),
-                      alignment: Alignment.center,
-                      child: Text(
-                        day,
-                        style: AppFontManager.caption.copyWith(
-                          fontSize: 8.sp,
-                          color: AppColors.textMuted,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                AppSpacing.w6,
-
-                // Grid columns
-                Row(
-                  children: List.generate(18, (colIndex) {
-                    return Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 2.w),
-                      child: Column(
-                        children: List.generate(7, (rowIndex) {
-                          final cellDate = startDate.add(Duration(days: colIndex * 7 + rowIndex));
-                          final isFuture = cellDate.isAfter(today);
-
-                          int completedCount = 0;
-                          if (!isFuture) {
-                            final dateStr = DateFormat('yyyy-MM-dd').format(cellDate);
-                            for (final habit in provider.habits) {
-                              if (habit.completedDays.contains(dateStr)) {
-                                completedCount++;
-                              }
-                            }
-                          }
-
-                          // Choose GitHub intensity colors
-                          Color color = AppColors.divider.withValues(alpha: 0.5);
-                          if (isFuture) {
-                            color = Colors.transparent;
-                          } else if (completedCount == 1) {
-                            color = AppColors.primaryMedium.withValues(alpha: 0.25);
-                          } else if (completedCount == 2) {
-                            color = AppColors.primaryMedium.withValues(alpha: 0.5);
-                          } else if (completedCount == 3) {
-                            color = AppColors.primaryMedium.withValues(alpha: 0.75);
-                          } else if (completedCount >= 4) {
-                            color = AppColors.primaryMedium;
-                          }
-
-                          return Tooltip(
-                            message: isFuture
-                                ? 'Future'
-                                : '${DateFormat('MMM d, y').format(cellDate)}: $completedCount habits completed',
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              width: 12.r,
-                              height: 12.r,
-                              margin: EdgeInsets.symmetric(vertical: 2.h),
-                              decoration: BoxDecoration(
-                                color: color,
-                                borderRadius: BorderRadius.circular(2.5.r),
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
-                    );
-                  }),
-                ),
-              ],
+      color: AppColors.accent,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        slivers: [
+          // ─── Heatmap ─────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 0),
+              child: HeatmapGrid(data: _heatmapData, weeks: 20),
             ),
           ),
-          AppSpacing.h12,
+          SliverToBoxAdapter(child: SizedBox(height: 20.h)),
 
-          // Less to More Legend
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text('Less', style: AppFontManager.caption.copyWith(fontSize: 9.sp)),
-              AppSpacing.w4,
-              _buildLegendBox(AppColors.divider.withValues(alpha: 0.5)),
-              _buildLegendBox(AppColors.primaryMedium.withValues(alpha: 0.25)),
-              _buildLegendBox(AppColors.primaryMedium.withValues(alpha: 0.5)),
-              _buildLegendBox(AppColors.primaryMedium.withValues(alpha: 0.75)),
-              _buildLegendBox(AppColors.primaryMedium),
-              AppSpacing.w4,
-              Text('More', style: AppFontManager.caption.copyWith(fontSize: 9.sp)),
-            ],
+          // ─── Stats Row ───────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: Row(
+                children: [
+                  _MiniStat(
+                    label: 'Streak',
+                    value: '${provider.currentStreak}',
+                    icon: '🔥',
+                    isDark: isDark,
+                  ),
+                  SizedBox(width: 12.w),
+                  _MiniStat(
+                    label: 'Today',
+                    value: '${provider.todayCompletedCount}/${provider.habits.length}',
+                    icon: '✓',
+                    isDark: isDark,
+                  ),
+                  SizedBox(width: 12.w),
+                  _MiniStat(
+                    label: 'Rate',
+                    value: '${(provider.todayCompletionRate * 100).toInt()}%',
+                    icon: '📊',
+                    isDark: isDark,
+                  ),
+                ],
+              ),
+            ),
           ),
+          SliverToBoxAdapter(child: SizedBox(height: 24.h)),
+
+          // ─── Section Header ──────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'My Habits',
+                    style: AppFontManager.headingMedium.copyWith(
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => _showAddHabitSheet(context, isDark),
+                    child: Container(
+                      padding: EdgeInsets.all(8.r),
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                      child: Icon(Icons.add_rounded, color: AppColors.accent, size: 20.sp),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(child: SizedBox(height: 12.h)),
+
+          // ─── Habit Cards ─────────────────────────────────
+          if (provider.habits.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 32.h),
+                child: Text(
+                  'No habits yet. Tap + to create your first habit!',
+                  textAlign: TextAlign.center,
+                  style: AppFontManager.bodyMedium.copyWith(
+                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                  ),
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    if (index == provider.habits.length) {
+                      return SizedBox(height: 20.h);
+                    }
+                    final habit = provider.habits[index];
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 10.h),
+                      child: _HabitCard(
+                        habit: habit,
+                        todayStr: todayStr,
+                        isDark: isDark,
+                        onToggle: () async {
+                          await provider.toggleHabitDay(habit, todayStr);
+                          await _loadHeatmap();
+                        },
+                        onDelete: () => provider.deleteHabit(habit.id!),
+                      ),
+                    );
+                  },
+                  childCount: provider.habits.length + 1,
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildLegendBox(Color color) {
-    return Container(
-      width: 9.r,
-      height: 9.r,
-      margin: EdgeInsets.symmetric(horizontal: 1.5.w),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(2.r),
+  void _showAddHabitSheet(BuildContext context, bool isDark) {
+    final nameController = TextEditingController();
+    final descController = TextEditingController();
+    String selectedIcon = '🎯';
+
+    final icons = ['🎯', '💪', '📚', '🧘', '🏃', '💧', '🎨', '🎵', '✍️', '🌅', '💤', '🥗'];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            20.w,
+            20.h,
+            20.w,
+            MediaQuery.of(ctx).viewInsets.bottom + 20.h,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'New Habit',
+                style: AppFontManager.headingLarge.copyWith(
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              // Icon picker
+              Wrap(
+                spacing: 8.w,
+                runSpacing: 8.h,
+                children: icons.map((icon) {
+                  final isSelected = selectedIcon == icon;
+                  return GestureDetector(
+                    onTap: () => setSheetState(() => selectedIcon = icon),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: EdgeInsets.all(10.r),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.accent.withValues(alpha: 0.15)
+                            : (isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: isSelected
+                            ? Border.all(color: AppColors.accent, width: 1.5)
+                            : null,
+                      ),
+                      child: Text(icon, style: TextStyle(fontSize: 20.sp)),
+                    ),
+                  );
+                }).toList(),
+              ),
+              SizedBox(height: 16.h),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(hintText: 'Habit name'),
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              SizedBox(height: 12.h),
+              TextField(
+                controller: descController,
+                decoration: const InputDecoration(hintText: 'Description (optional)'),
+              ),
+              SizedBox(height: 20.h),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (nameController.text.trim().isEmpty) return;
+                    context.read<HabitProvider>().addHabit(
+                          name: nameController.text,
+                          description: descController.text,
+                          icon: selectedIcon,
+                        );
+                    Navigator.pop(ctx);
+                    _loadHeatmap();
+                  },
+                  child: const Text('Create Habit'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
+}
 
-  Widget _buildHabitCard(BuildContext context, HabitModel habit, List<DateTime> days) {
+// ═══════════════════════════════════════════════════════════════════════════
+class _MiniStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final String icon;
+  final bool isDark;
+
+  const _MiniStat({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCard : AppColors.lightCard,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+            width: 0.5,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(icon, style: TextStyle(fontSize: 16.sp)),
+            SizedBox(height: 4.h),
+            Text(
+              value,
+              style: AppFontManager.headingMedium.copyWith(
+                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                fontWeight: FontWeight.w800,
+                fontSize: 16.sp,
+              ),
+            ),
+            Text(
+              label,
+              style: AppFontManager.caption.copyWith(
+                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                fontSize: 9.sp,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+class _HabitCard extends StatelessWidget {
+  final HabitModel habit;
+  final String todayStr;
+  final bool isDark;
+  final VoidCallback onToggle;
+  final VoidCallback onDelete;
+
+  const _HabitCard({
+    required this.habit,
+    required this.todayStr,
+    required this.isDark,
+    required this.onToggle,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDone = habit.isCompletedOn(todayStr);
+
+    // Week progress dots
+    final now = DateTime.now();
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+    final weekDays = List.generate(7, (i) {
+      final date = weekStart.add(Duration(days: i));
+      return date.toIso8601String().substring(0, 10);
+    });
+
     return Dismissible(
-      key: Key(habit.id),
+      key: ValueKey(habit.id),
       direction: DismissDirection.endToStart,
-      onDismissed: (_) {
-        context.read<HabitProvider>().deleteHabit(habit.id);
-      },
       background: Container(
-        margin: EdgeInsets.only(bottom: 12.h),
         alignment: Alignment.centerRight,
         padding: EdgeInsets.only(right: 20.w),
         decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(16.r),
+          color: AppColors.error.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(14.r),
         ),
-        child: Icon(Icons.delete_outline_rounded, color: AppColors.white, size: 22.sp),
+        child: Icon(Icons.delete_rounded, color: AppColors.error, size: 22.sp),
       ),
-      child: Container(
-        margin: EdgeInsets.only(bottom: 12.h),
-        padding: EdgeInsets.all(16.r),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: AppColors.divider, width: 1),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Habit Info & Streak Counter
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        habit.name,
-                        style: AppFontManager.bodyMedium.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
+      confirmDismiss: (_) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Delete Habit?'),
+            content: Text('Remove "${habit.name}" permanently?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+            ],
+          ),
+        );
+      },
+      onDismissed: (_) => onDelete(),
+      child: GestureDetector(
+        onTap: onToggle,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: EdgeInsets.all(16.r),
+          decoration: BoxDecoration(
+            color: isDone
+                ? AppColors.accent.withValues(alpha: 0.08)
+                : (isDark ? AppColors.darkCard : AppColors.lightCard),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: isDone
+                  ? AppColors.accent.withValues(alpha: 0.3)
+                  : (isDark ? AppColors.darkDivider : AppColors.lightDivider),
+              width: 0.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              // Icon
+              Text(habit.icon, style: TextStyle(fontSize: 28.sp)),
+              SizedBox(width: 14.w),
+              // Name + week dots
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      habit.name,
+                      style: AppFontManager.bodyMedium.copyWith(
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        fontWeight: FontWeight.w600,
+                        decoration: isDone ? TextDecoration.lineThrough : null,
                       ),
-                      if (habit.description.isNotEmpty) ...[
-                        AppSpacing.h2,
-                        Text(
-                          habit.description,
-                          style: AppFontManager.bodySmall,
-                        ),
-                      ],
-                    ],
-                  ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 6.h),
+                    // Week dots
+                    Row(
+                      children: weekDays.map((dayStr) {
+                        final completed = habit.isCompletedOn(dayStr);
+                        final isToday = dayStr == todayStr;
+                        return Container(
+                          width: 8.r,
+                          height: 8.r,
+                          margin: EdgeInsets.only(right: 4.w),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: completed
+                                ? AppColors.accent
+                                : (isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                            border: isToday
+                                ? Border.all(color: AppColors.accent, width: 1.5)
+                                : null,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
                 ),
-                AppSpacing.w12,
-
-                // Streak Flame
+              ),
+              // Streak badge
+              if (habit.streakCount > 0) ...[
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12.r),
+                    color: AppColors.streakFire.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.local_fire_department_rounded, color: Colors.orange, size: 16.sp),
-                      AppSpacing.w4,
-                      Text(
-                        '${habit.streakCount} d',
-                        style: AppFontManager.labelMedium.copyWith(
-                          color: Colors.orange.shade800,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    '🔥 ${habit.streakCount}',
+                    style: AppFontManager.caption.copyWith(
+                      color: AppColors.streakFire,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
-            ),
-            AppSpacing.h16,
-
-            // 7 Days Grid
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: days.map((day) {
-                final dateStr = day.toIso8601String().substring(0, 10);
-                final isCompleted = habit.completedDays.contains(dateStr);
-                final isToday = DateFormat('yyyy-MM-dd').format(DateTime.now()) == dateStr;
-
-                return GestureDetector(
-                  onTap: () {
-                    context.read<HabitProvider>().toggleHabitDay(habit, dateStr);
-                  },
-                  child: Column(
-                    children: [
-                      Text(
-                        DateFormat('E').format(day).substring(0, 1),
-                        style: AppFontManager.bodySmall.copyWith(
-                          fontSize: 10.sp,
-                          color: isToday ? AppColors.primaryMedium : AppColors.textMuted,
-                          fontWeight: isToday ? FontWeight.w900 : FontWeight.normal,
-                        ),
-                      ),
-                      AppSpacing.h6,
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 32.r,
-                        height: 32.r,
-                        decoration: BoxDecoration(
-                          color: isCompleted ? AppColors.primaryMedium : AppColors.surface,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isCompleted
-                                ? AppColors.primaryMedium
-                                : (isToday ? AppColors.primaryLight : AppColors.divider),
-                            width: isToday ? 2.2 : 1,
-                          ),
-                          boxShadow: isToday
-                              ? [
-                                  BoxShadow(
-                                    color: AppColors.primaryLight.withValues(alpha: 0.15),
-                                    blurRadius: 4,
-                                    spreadRadius: 1,
-                                  )
-                                ]
-                              : null,
-                        ),
-                        alignment: Alignment.center,
-                        child: isCompleted
-                            ? Icon(Icons.check, color: AppColors.white, size: 16.sp)
-                            : (isToday
-                                ? Text(
-                                    DateFormat('d').format(day),
-                                    style: AppFontManager.bodySmall.copyWith(
-                                      fontSize: 10.sp,
-                                      color: AppColors.primaryMedium,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  )
-                                : Icon(Icons.close_rounded,
-                                    color: AppColors.divider.withValues(alpha: 0.8), size: 12.sp)),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

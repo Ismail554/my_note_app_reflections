@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:Reflections/core/config/router_config.dart';
 import 'package:Reflections/core/theme/app_theme.dart';
 import 'package:Reflections/core/localization/app_translations.dart';
+import 'package:Reflections/core/providers/settings_provider.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -15,13 +16,15 @@ class MyApp extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        // Watch language provider to rebuild MaterialApp dynamically on translation changes
         final languageProvider = context.watch<LanguageProvider>();
+        final settingsProvider = context.watch<SettingsProvider>();
 
         return MaterialApp.router(
           title: 'Reflections',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: settingsProvider.themeMode,
           routeInformationParser: AppRouterConfig.router.routeInformationParser,
           routerDelegate: AppRouterConfig.router.routerDelegate,
           routeInformationProvider: AppRouterConfig.router.routeInformationProvider,

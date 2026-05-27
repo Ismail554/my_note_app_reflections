@@ -1,8 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:Reflections/core/theme/app_colors.dart';
 
+/// Minimal 4-tab bottom nav with subtle top border. Dark/light aware via Theme.
 class HomeBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -15,75 +14,116 @@ class HomeBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      margin: EdgeInsets.only(
-        left: 20.w,
-        right: 20.w,
-        bottom: 24.h,
-      ),
-      height: 68.h,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.15),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+        color: colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.06)
+                : Colors.black.withValues(alpha: 0.06),
+            width: 0.5,
           ),
-        ],
+        ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22.r),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.w),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(0, Icons.home_rounded, 'Home'),
-                _buildNavItem(1, Icons.playlist_add_check_rounded, 'Tasks'),
-                _buildNavItem(2, Icons.search_rounded, 'Search'),
-                _buildNavItem(3, Icons.archive_rounded, 'Archive'),
-                _buildNavItem(4, Icons.settings_rounded, 'Settings'),
-              ],
-            ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 60.h,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _NavItem(
+                index: 0,
+                icon: Icons.today_rounded,
+                label: 'Today',
+                isSelected: currentIndex == 0,
+                onTap: onTap,
+              ),
+              _NavItem(
+                index: 1,
+                icon: Icons.sticky_note_2_rounded,
+                label: 'Notes',
+                isSelected: currentIndex == 1,
+                onTap: onTap,
+              ),
+              _NavItem(
+                index: 2,
+                icon: Icons.check_circle_outline_rounded,
+                label: 'Tasks',
+                isSelected: currentIndex == 2,
+                onTap: onTap,
+              ),
+              _NavItem(
+                index: 3,
+                icon: Icons.settings_rounded,
+                label: 'Settings',
+                isSelected: currentIndex == 3,
+                onTap: onTap,
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
-    final isSelected = currentIndex == index;
+class _NavItem extends StatelessWidget {
+  final int index;
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final ValueChanged<int> onTap;
+
+  const _NavItem({
+    required this.index,
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final selectedColor = colorScheme.primary;
+    final unselectedColor = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: 0.35)
+        : Colors.black.withValues(alpha: 0.35);
+
     return GestureDetector(
       onTap: () => onTap(index),
       behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOutBack,
-            padding: EdgeInsets.all(isSelected ? 10.r : 6.r),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.primaryMedium.withValues(alpha: 0.18)
-                  : Colors.transparent,
-              shape: BoxShape.circle,
+      child: SizedBox(
+        width: 64.w,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              child: Icon(
+                icon,
+                color: isSelected ? selectedColor : unselectedColor,
+                size: 22.sp,
+              ),
             ),
-            child: Icon(
-              icon,
-              color: isSelected ? AppColors.primaryMedium : AppColors.textHint,
-              size: isSelected ? 24.sp : 22.sp,
+            SizedBox(height: 2.h),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                fontSize: 10.sp,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected ? selectedColor : unselectedColor,
+              ),
+              child: Text(label),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -16,6 +16,7 @@ import 'package:Reflections/features/todo/state/todo_provider.dart';
 import 'package:Reflections/features/habit/state/habit_provider.dart';
 import 'package:Reflections/features/reminder/state/reminder_provider.dart';
 import 'package:Reflections/features/reminder/services/notification_service.dart';
+import 'package:Reflections/features/analytics/state/analytics_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +40,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => TodoProvider()),
         ChangeNotifierProvider(create: (_) => HabitProvider()),
         ChangeNotifierProvider(create: (_) => ReminderProvider()),
+        ChangeNotifierProvider(create: (_) => AnalyticsProvider()),
       ],
       child: const MyApp(),
     ),

@@ -1,38 +1,61 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:Reflections/core/database/database_helper.dart';
 import 'package:Reflections/features/reminder/data/models/reminder_model.dart';
 
 class ReminderRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final DatabaseHelper _db = DatabaseHelper.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   String? get uid => _auth.currentUser?.uid;
 
-  CollectionReference<Map<String, dynamic>> get _remindersRef {
+  // ─── Read ──────────────────────────────────────────────────────────────
+
+  Future<List<ReminderModel>> getReminders() async {
     final currentUid = uid;
-    if (currentUid == null) throw Exception('User not authenticated');
-    return _firestore.collection('users').doc(currentUid).collection('reminders');
+    if (currentUid == null) return [];
+
+    final rows = await _db.queryAll(
+      'reminders',
+      where: 'user_id = ?',
+      whereArgs: [currentUid],
+      orderBy: 'trigger_date_time ASC',
+    );
+
+    return rows.map((r) => ReminderModel.fromSqlite(r)).toList();
   }
 
-  Stream<List<ReminderModel>> getRemindersStream() {
-    return _remindersRef.snapshots().map((snapshot) {
-      final reminders = snapshot.docs
-          .map((doc) => ReminderModel.fromMap(doc.data(), doc.id))
-          .toList();
-      reminders.sort((a, b) => a.triggerDateTime.compareTo(b.triggerDateTime));
-      return reminders;
-    });
+  Future<List<ReminderModel>> getUpcoming({int limit = 3}) async {
+    final currentUid = uid;
+    if (currentUid == null) return [];
+
+    final now = DateTime.now().toIso8601String();
+    final rows = await _db.rawQuery('''
+      SELECT * FROM reminders
+      WHERE user_id = ? AND trigger_date_time > ?
+      ORDER BY trigger_date_time ASC
+      LIMIT ?
+    ''', [currentUid, now, limit]);
+
+    return rows.map((r) => ReminderModel.fromSqlite(r)).toList();
   }
 
-  Future<void> addReminder(ReminderModel reminder) async {
-    await _remindersRef.add(reminder.toMap());
+  // ─── Write ─────────────────────────────────────────────────────────────
+
+  Future<int> addReminder(ReminderModel reminder) async {
+    return await _db.insert('reminders', reminder.toSqlite());
   }
 
   Future<void> updateReminder(ReminderModel reminder) async {
-    await _remindersRef.doc(reminder.id).update(reminder.toMap());
+    if (reminder.id == null) return;
+    await _db.update(
+      'reminders',
+      reminder.toSqlite(),
+      where: 'id = ?',
+      whereArgs: [reminder.id],
+    );
   }
 
-  Future<void> deleteReminder(String id) async {
-    await _remindersRef.doc(id).delete();
+  Future<void> deleteReminder(int id) async {
+    await _db.delete('reminders', where: 'id = ?', whereArgs: [id]);
   }
 }

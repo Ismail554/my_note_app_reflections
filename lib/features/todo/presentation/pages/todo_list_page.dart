@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
-import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:Reflections/features/todo/data/models/todo_model.dart';
 import 'package:Reflections/features/todo/state/todo_provider.dart';
 import 'package:Reflections/shared/widgets/empty_state.dart';
@@ -31,63 +30,44 @@ class _TodoListPageState extends State<TodoListPage> {
     _titleController.clear();
     _selectedPriority = 'Medium';
     _selectedDueDate = null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
-      builder: (context) {
+      builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
+          builder: (ctx, setModalState) {
             return Padding(
-              padding: EdgeInsets.only(
-                left: 24.w,
-                right: 24.w,
-                top: 24.h,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24.h,
+              padding: EdgeInsets.fromLTRB(
+                24.w, 24.h, 24.w,
+                MediaQuery.of(ctx).viewInsets.bottom + 24.h,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('New Task', style: AppFontManager.headlineMedium),
-                  AppSpacing.h16,
-
-                  // Title input
+                  Text('New Task', style: AppFontManager.headingLarge.copyWith(
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  )),
+                  SizedBox(height: 16.h),
                   TextField(
                     controller: _titleController,
                     autofocus: true,
-                    style: AppFontManager.bodyLarge,
-                    decoration: InputDecoration(
-                      hintText: 'What needs to be done?',
-                      hintStyle: AppFontManager.bodyMedium.copyWith(color: AppColors.textHint),
-                      filled: true,
-                      fillColor: AppColors.inputFill,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: const BorderSide(color: AppColors.inputBorder),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: const BorderSide(color: AppColors.inputBorder),
-                      ),
-                    ),
+                    decoration: const InputDecoration(hintText: 'What needs to be done?'),
+                    textCapitalization: TextCapitalization.sentences,
                   ),
-                  AppSpacing.h16,
-
-                  // Priority buttons
-                  Text('Priority', style: AppFontManager.labelMedium),
-                  AppSpacing.h8,
+                  SizedBox(height: 16.h),
+                  Text('Priority', style: AppFontManager.labelMedium.copyWith(
+                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                  )),
+                  SizedBox(height: 8.h),
                   Row(
                     children: ['Low', 'Medium', 'High'].map((p) {
                       final isSelected = _selectedPriority == p;
-                      Color pColor = AppColors.primaryMedium;
-                      if (p == 'Low') pColor = Colors.blue;
-                      if (p == 'High') pColor = AppColors.error;
+                      Color pColor = AppColors.priorityMedium;
+                      if (p == 'Low') pColor = AppColors.priorityLow;
+                      if (p == 'High') pColor = AppColors.priorityHigh;
 
                       return Expanded(
                         child: GestureDetector(
@@ -96,18 +76,18 @@ class _TodoListPageState extends State<TodoListPage> {
                             margin: EdgeInsets.symmetric(horizontal: 4.w),
                             padding: EdgeInsets.symmetric(vertical: 10.h),
                             decoration: BoxDecoration(
-                              color: isSelected ? pColor.withValues(alpha: 0.15) : AppColors.surface,
+                              color: isSelected ? pColor.withValues(alpha: 0.15) : Colors.transparent,
                               borderRadius: BorderRadius.circular(10.r),
                               border: Border.all(
-                                color: isSelected ? pColor : AppColors.divider,
-                                width: isSelected ? 1.8 : 1,
+                                color: isSelected ? pColor : (isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                                width: isSelected ? 1.5 : 0.5,
                               ),
                             ),
                             alignment: Alignment.center,
                             child: Text(
                               p,
                               style: AppFontManager.labelMedium.copyWith(
-                                color: isSelected ? pColor : AppColors.textSecondary,
+                                color: isSelected ? pColor : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                               ),
                             ),
@@ -116,26 +96,26 @@ class _TodoListPageState extends State<TodoListPage> {
                       );
                     }).toList(),
                   ),
-                  AppSpacing.h16,
-
-                  // Due Date picker
+                  SizedBox(height: 16.h),
                   Row(
                     children: [
-                      Icon(Icons.calendar_today_outlined, size: 18.sp, color: AppColors.primaryMedium),
-                      AppSpacing.w8,
+                      Icon(Icons.calendar_today_outlined, size: 18.sp, color: AppColors.accent),
+                      SizedBox(width: 8.w),
                       Text(
                         _selectedDueDate == null
                             ? 'No due date set'
                             : 'Due: ${DateFormat('MMM d, y').format(_selectedDueDate!)}',
                         style: AppFontManager.bodyMedium.copyWith(
-                          color: _selectedDueDate == null ? AppColors.textHint : AppColors.textPrimary,
+                          color: _selectedDueDate == null
+                              ? (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted)
+                              : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
                         ),
                       ),
                       const Spacer(),
                       TextButton(
                         onPressed: () async {
                           final picked = await showDatePicker(
-                            context: context,
+                            context: ctx,
                             initialDate: DateTime.now(),
                             firstDate: DateTime.now(),
                             lastDate: DateTime.now().add(const Duration(days: 365)),
@@ -144,23 +124,14 @@ class _TodoListPageState extends State<TodoListPage> {
                             setModalState(() => _selectedDueDate = picked);
                           }
                         },
-                        child: Text('Set Date', style: AppFontManager.link),
+                        child: const Text('Set Date'),
                       ),
                     ],
                   ),
-                  AppSpacing.h24,
-
-                  // Submit button
+                  SizedBox(height: 20.h),
                   SizedBox(
                     width: double.infinity,
-                    height: 48.h,
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryDark,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                      ),
                       onPressed: () {
                         if (_titleController.text.trim().isEmpty) return;
                         context.read<TodoProvider>().addTodo(
@@ -168,12 +139,9 @@ class _TodoListPageState extends State<TodoListPage> {
                               _selectedPriority,
                               _selectedDueDate,
                             );
-                        Navigator.pop(context);
+                        Navigator.pop(ctx);
                       },
-                      child: Text(
-                        'Add Task',
-                        style: AppFontManager.buttonLarge.copyWith(color: AppColors.white),
-                      ),
+                      child: const Text('Add Task'),
                     ),
                   ),
                 ],
@@ -187,25 +155,24 @@ class _TodoListPageState extends State<TodoListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Consumer<TodoProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.primaryMedium));
+          return Center(child: CircularProgressIndicator(color: AppColors.accent));
         }
 
         if (provider.todos.isEmpty) {
-          return Scaffold(
-            backgroundColor: AppColors.background,
-            body: EmptyState(
-              message: 'Checklist is currently empty.',
-              actionLabel: 'Create Task',
-              onAction: () => _showAddTodoSheet(context),
-            ),
+          return EmptyState(
+            message: 'Checklist is currently empty.',
+            actionLabel: 'Create Task',
+            onAction: () => _showAddTodoSheet(context),
           );
         }
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: Colors.transparent,
           floatingActionButton: FloatingActionButton(
             onPressed: () => _showAddTodoSheet(context),
             tooltip: 'Add Task',
@@ -215,13 +182,16 @@ class _TodoListPageState extends State<TodoListPage> {
             physics: const BouncingScrollPhysics(),
             padding: EdgeInsets.symmetric(horizontal: 20.w),
             children: [
-              // ─── Progress Card ──────────────────────────────────────────
+              // ─── Progress Card ───────────────────────────────────
               Container(
                 padding: EdgeInsets.all(16.r),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(color: AppColors.divider, width: 1),
+                  color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+                    width: 0.5,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,38 +199,45 @@ class _TodoListPageState extends State<TodoListPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Task Progress', style: AppFontManager.headlineMedium),
+                        Text('Task Progress', style: AppFontManager.headingMedium.copyWith(
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        )),
                         Text(
                           '${provider.completedCount}/${provider.todos.length}',
-                          style: AppFontManager.bodyMedium.copyWith(fontWeight: FontWeight.w700),
+                          style: AppFontManager.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                          ),
                         ),
                       ],
                     ),
-                    AppSpacing.h8,
+                    SizedBox(height: 8.h),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8.r),
                       child: LinearProgressIndicator(
                         value: provider.progressRatio,
-                        minHeight: 8.h,
-                        backgroundColor: AppColors.surfaceVariant,
-                        color: AppColors.primaryMedium,
+                        minHeight: 6.h,
+                        backgroundColor: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
+                        color: AppColors.accent,
                       ),
                     ),
-                    AppSpacing.h6,
+                    SizedBox(height: 6.h),
                     Text(
                       provider.progressRatio == 1.0
-                          ? 'Hurray! All tasks completed today! 🎉'
+                          ? 'All tasks completed! 🎉'
                           : '${(provider.progressRatio * 100).toInt()}% completed',
-                      style: AppFontManager.bodySmall,
+                      style: AppFontManager.caption.copyWith(
+                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      ),
                     ),
                   ],
                 ),
               ),
-              AppSpacing.h16,
+              SizedBox(height: 12.h),
 
-              // ─── Active Task List ───────────────────────────────────────
-              ...provider.todos.map((todo) => _buildTodoCard(context, todo)),
-              AppSpacing.h80,
+              // ─── Todo Cards ──────────────────────────────────────
+              ...provider.todos.map((todo) => _buildTodoCard(context, todo, isDark)),
+              SizedBox(height: 80.h),
             ],
           ),
         );
@@ -268,52 +245,53 @@ class _TodoListPageState extends State<TodoListPage> {
     );
   }
 
-  Widget _buildTodoCard(BuildContext context, TodoModel todo) {
-    Color pColor = AppColors.primaryMedium;
-    if (todo.priority == 'Low') pColor = Colors.blue;
-    if (todo.priority == 'High') pColor = AppColors.error;
+  Widget _buildTodoCard(BuildContext context, TodoModel todo, bool isDark) {
+    Color pColor = AppColors.priorityMedium;
+    if (todo.priority == 'Low') pColor = AppColors.priorityLow;
+    if (todo.priority == 'High') pColor = AppColors.priorityHigh;
 
     return Dismissible(
-      key: Key(todo.id),
+      key: Key('${todo.id}'),
       direction: DismissDirection.endToStart,
       onDismissed: (_) {
-        context.read<TodoProvider>().deleteTodo(todo.id);
+        if (todo.id != null) context.read<TodoProvider>().deleteTodo(todo.id!);
       },
       background: Container(
         margin: EdgeInsets.only(bottom: 8.h),
         alignment: Alignment.centerRight,
         padding: EdgeInsets.only(right: 20.w),
         decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(14.r),
+          color: AppColors.error.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12.r),
         ),
-        child: Icon(Icons.delete_outline_rounded, color: AppColors.white, size: 22.sp),
+        child: Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 22.sp),
       ),
       child: Container(
         margin: EdgeInsets.only(bottom: 8.h),
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: AppColors.divider, width: 1),
+          color: isDark ? AppColors.darkCard : AppColors.lightCard,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+            width: 0.5,
+          ),
         ),
         child: Row(
           children: [
-            // Checked indicator checkbox
+            // Checkbox
             GestureDetector(
-              onTap: () {
-                context.read<TodoProvider>().toggleTodoStatus(todo);
-              },
+              onTap: () => context.read<TodoProvider>().toggleTodoStatus(todo),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                width: 24.r,
-                height: 24.r,
+                width: 22.r,
+                height: 22.r,
                 decoration: BoxDecoration(
-                  color: todo.isCompleted ? AppColors.primaryMedium : AppColors.surface,
+                  color: todo.isCompleted ? AppColors.accent : Colors.transparent,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: todo.isCompleted ? AppColors.primaryMedium : AppColors.divider,
-                    width: 2,
+                    color: todo.isCompleted ? AppColors.accent : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
+                    width: 1.5,
                   ),
                 ),
                 child: todo.isCompleted
@@ -321,9 +299,7 @@ class _TodoListPageState extends State<TodoListPage> {
                     : null,
               ),
             ),
-            AppSpacing.w12,
-
-            // Todo core content
+            SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,20 +307,26 @@ class _TodoListPageState extends State<TodoListPage> {
                   Text(
                     todo.title,
                     style: AppFontManager.bodyMedium.copyWith(
-                      color: todo.isCompleted ? AppColors.textMuted : AppColors.textPrimary,
+                      color: todo.isCompleted
+                          ? (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted)
+                          : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
                       decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   if (todo.dueDate != null) ...[
-                    AppSpacing.h4,
+                    SizedBox(height: 4.h),
                     Row(
                       children: [
-                        Icon(Icons.calendar_today_outlined, size: 10.sp, color: AppColors.textMuted),
-                        AppSpacing.w4,
+                        Icon(Icons.calendar_today_outlined, size: 10.sp,
+                          color: todo.isOverdue ? AppColors.error : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted)),
+                        SizedBox(width: 4.w),
                         Text(
                           DateFormat('E, MMM d').format(todo.dueDate!),
-                          style: AppFontManager.bodySmall.copyWith(fontSize: 10.sp),
+                          style: AppFontManager.caption.copyWith(
+                            fontSize: 10.sp,
+                            color: todo.isOverdue ? AppColors.error : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
+                          ),
                         ),
                       ],
                     ),
@@ -352,31 +334,20 @@ class _TodoListPageState extends State<TodoListPage> {
                 ],
               ),
             ),
-
-            // Priority dot and tag
+            // Priority tag
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
               decoration: BoxDecoration(
-                color: pColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8.r),
+                color: pColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6.r),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 6.r,
-                    height: 6.r,
-                    decoration: BoxDecoration(color: pColor, shape: BoxShape.circle),
-                  ),
-                  AppSpacing.w6,
-                  Text(
-                    todo.priority,
-                    style: AppFontManager.labelMedium.copyWith(
-                      color: pColor,
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              child: Text(
+                todo.priority,
+                style: AppFontManager.caption.copyWith(
+                  color: pColor,
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],

@@ -7,6 +7,7 @@ import 'package:Reflections/core/providers/note_provider.dart';
 import 'package:Reflections/features/todo/presentation/pages/todo_list_page.dart';
 import 'package:Reflections/features/habit/presentation/pages/habit_tracker_page.dart';
 import 'package:Reflections/features/reminder/presentation/pages/reminder_manager_page.dart';
+import 'package:Reflections/features/analytics/presentation/pages/analytics_page.dart';
 
 class TasksDashboardPage extends StatefulWidget {
   const TasksDashboardPage({super.key});
@@ -24,9 +25,9 @@ class _TasksDashboardPageState extends State<TasksDashboardPage>
     super.initState();
     final noteProvider = Provider.of<NoteProvider>(context, listen: false);
     _tabController = TabController(
-      length: 3,
+      length: 4,
       vsync: this,
-      initialIndex: noteProvider.selectedTasksTabIndex,
+      initialIndex: noteProvider.selectedTasksTabIndex.clamp(0, 3),
     );
 
     _tabController.addListener(() {
@@ -40,7 +41,9 @@ class _TasksDashboardPageState extends State<TasksDashboardPage>
 
   void _onNoteProviderChange() {
     if (!mounted) return;
-    final targetIndex = Provider.of<NoteProvider>(context, listen: false).selectedTasksTabIndex;
+    final targetIndex = Provider.of<NoteProvider>(context, listen: false)
+        .selectedTasksTabIndex
+        .clamp(0, 3);
     if (_tabController.index != targetIndex) {
       _tabController.animateTo(targetIndex);
     }
@@ -48,9 +51,9 @@ class _TasksDashboardPageState extends State<TasksDashboardPage>
 
   @override
   void dispose() {
-    // Check if context is still valid or use a try-catch to avoid issues when disposing
     try {
-      Provider.of<NoteProvider>(context, listen: false).removeListener(_onNoteProviderChange);
+      Provider.of<NoteProvider>(context, listen: false)
+          .removeListener(_onNoteProviderChange);
     } catch (_) {}
     _tabController.dispose();
     super.dispose();
@@ -58,87 +61,82 @@ class _TasksDashboardPageState extends State<TasksDashboardPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ─── Header Section ───────────────────────────────────────────
-            Padding(
-              padding: EdgeInsets.only(left: 20.w, right: 20.w, top: 20.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Tasks Hub',
-                    style: AppFontManager.displayMedium,
-                  ),
-                  Text(
-                    'Track checklists, daily check-ins, and timed alarms.',
-                    style: AppFontManager.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 16.h),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-            // ─── Styled Custom Tab Bar ────────────────────────────────────
-            Container(
-              margin: EdgeInsets.symmetric(horizontal: 20.w),
-              padding: EdgeInsets.all(4.r),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(16.r),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryDark.withValues(alpha: 0.08),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                labelColor: AppColors.primaryDark,
-                unselectedLabelColor: AppColors.textMuted,
-                labelStyle: AppFontManager.labelMedium.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12.sp,
-                ),
-                unselectedLabelStyle: AppFontManager.labelMedium.copyWith(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 12.sp,
-                ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(text: 'To-Do'),
-                  Tab(text: 'Habits'),
-                  Tab(text: 'Alarms'),
-                ],
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ─── Header ─────────────────────────────────────────────
+          Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 0),
+            child: Text(
+              'Tasks Hub',
+              style: AppFontManager.displayMedium.copyWith(
+                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
               ),
             ),
-            SizedBox(height: 16.h),
+          ),
+          SizedBox(height: 16.h),
 
-            // ─── Tab Views ────────────────────────────────────────────────
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                physics: const BouncingScrollPhysics(),
-                children: const [
-                  TodoListPage(),
-                  HabitTrackerPage(),
-                  ReminderManagerPage(),
+          // ─── Tab Bar ────────────────────────────────────────────
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 20.w),
+            padding: EdgeInsets.all(3.r),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
+              borderRadius: BorderRadius.circular(14.r),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                borderRadius: BorderRadius.circular(11.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
                 ],
               ),
+              labelColor: AppColors.accent,
+              unselectedLabelColor:
+                  isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+              labelStyle: AppFontManager.labelMedium.copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 11.sp,
+              ),
+              unselectedLabelStyle: AppFontManager.labelMedium.copyWith(
+                fontWeight: FontWeight.w500,
+                fontSize: 11.sp,
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              tabs: const [
+                Tab(text: 'To-Do'),
+                Tab(text: 'Habits'),
+                Tab(text: 'Alarms'),
+                Tab(text: 'Activity'),
+              ],
             ),
-          ],
-        ),
+          ),
+          SizedBox(height: 12.h),
+
+          // ─── Tab Views ──────────────────────────────────────────
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              physics: const BouncingScrollPhysics(),
+              children: const [
+                TodoListPage(),
+                HabitTrackerPage(),
+                ReminderManagerPage(),
+                AnalyticsPage(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

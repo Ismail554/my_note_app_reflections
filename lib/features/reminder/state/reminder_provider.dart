@@ -12,64 +12,81 @@ class ReminderProvider extends ChangeNotifier {
   List<ReminderModel> get reminders => _reminders;
   bool get isLoading => _isLoading;
 
-  ReminderProvider() {
-    _initStream();
+  // ─── Computed Getters ──────────────────────────────────────────────────
+
+  List<ReminderModel> get upcomingReminders =>
+      _reminders.where((r) => !r.isPast).toList();
+
+  List<ReminderModel> get todayReminders {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+
+    return _reminders.where((r) {
+      return r.triggerDateTime.isAfter(today) &&
+          r.triggerDateTime.isBefore(tomorrow);
+    }).toList();
   }
 
-  void _initStream() {
+  // ─── Load / Refresh ────────────────────────────────────────────────────
+
+  Future<void> loadReminders() async {
     if (FirebaseAuth.instance.currentUser == null) return;
     _isLoading = true;
+    notifyListeners();
 
-    _repository.getRemindersStream().listen(
-      (list) {
-        _reminders = list;
-        _isLoading = false;
-        notifyListeners();
-      },
-      onError: (e) {
-        _isLoading = false;
-        notifyListeners();
-      },
-    );
+    try {
+      _reminders = await _repository.getReminders();
+    } catch (_) {}
+
+    _isLoading = false;
+    notifyListeners();
   }
 
-  Future<void> addReminder(
-    String title,
-    String description,
-    DateTime triggerTime,
-    bool isAlarm,
-  ) async {
-    final uid = _repository.uid;
-    if (uid == null) return;
+  Future<void> refresh() async => await loadReminders();
 
-    // Generate unique positive integer for local notification ID
+  // ─── CRUD ──────────────────────────────────────────────────────────────
+
+  Future<void> addReminder({
+    required String title,
+    String description = '',
+    required DateTime triggerTime,
+    bool isAlarm = false,
+    String repeatType = 'none',
+  }) async {
+    final currentUid = _repository.uid;
+    if (currentUid == null) return;
+
     final notificationId = DateTime.now().millisecondsSinceEpoch.remainder(100000000);
 
     final newReminder = ReminderModel(
-      id: '',
       title: title.trim(),
       description: description.trim(),
       triggerDateTime: triggerTime,
       isScheduled: true,
       isAlarm: isAlarm,
+      repeatType: repeatType,
       notificationId: notificationId,
-      userId: uid,
+      userId: currentUid,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
 
-    // 1. Save to database
     await _repository.addReminder(newReminder);
-
-    // 2. Register local alarm notification in background
     await NotificationService.instance.scheduleNotification(newReminder);
+    await loadReminders();
   }
 
   Future<void> deleteReminder(ReminderModel reminder) async {
-    // 1. Cancel local alarm
     await NotificationService.instance.cancelNotification(reminder.notificationId);
+    if (reminder.id != null) {
+      await _repository.deleteReminder(reminder.id!);
+    }
+    await loadReminders();
+  }
 
-    // 2. Remove from database
-    await _repository.deleteReminder(reminder.id);
+  Future<void> updateReminder(ReminderModel reminder) async {
+    await _repository.updateReminder(reminder);
+    await loadReminders();
   }
 }
