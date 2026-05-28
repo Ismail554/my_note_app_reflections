@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,8 +9,12 @@ import 'package:Reflections/core/theme/app_font_manager.dart';
 import 'package:Reflections/core/widgets/note_save_button.dart';
 import 'package:Reflections/core/providers/note_provider.dart';
 import 'package:Reflections/shared/models/note_model.dart';
-import 'package:Reflections/core/services/gemini_service.dart';
 import 'package:Reflections/core/localization/app_translations.dart';
+import 'package:Reflections/shared/widgets/markdown_text.dart';
+import 'package:Reflections/features/add_new/presentation/widgets/meta_chip.dart';
+import 'package:Reflections/features/add_new/presentation/widgets/toolbar_button.dart';
+import 'package:Reflections/features/add_new/presentation/widgets/ai_assistant_panel.dart';
+import 'package:Reflections/features/add_new/presentation/widgets/version_history_sheet.dart';
 
 class AddNotePage extends StatefulWidget {
   final NoteModel? note;
@@ -22,13 +27,21 @@ class AddNotePage extends StatefulWidget {
 class _AddNotePageState extends State<AddNotePage> {
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
-  
+
   bool _isSaving = false;
   late String _categoryName;
-  
+
   // Custom Customizations
   int _selectedColor = 0;
   bool _isPinned = false;
+  bool _isPreviewMode = false;
+
+  // Auto-Save and Version History State
+  Timer? _autoSaveTimer;
+  String? _currentNoteId;
+  String _lastSavedTitle = '';
+  String _lastSavedBody = '';
+  bool _isAutoSaving = false;
 
   @override
   void initState() {
@@ -39,23 +52,91 @@ class _AddNotePageState extends State<AddNotePage> {
       _categoryName = widget.note!.category;
       _selectedColor = widget.note!.colorValue;
       _isPinned = widget.note!.isPinned;
+      _isPreviewMode = true; // Open existing notes in Preview Mode by default!
     } else {
       _selectedColor = 0;
       _isPinned = false;
-      // Get category from NoteProvider
       final noteProvider = context.read<NoteProvider>();
       _categoryName = noteProvider.selectedFolder == 'All'
           ? 'Reflections'
           : noteProvider.selectedFolder;
     }
 
+    _currentNoteId = widget.note?.id;
+    _lastSavedTitle = _titleController.text;
+    _lastSavedBody = _bodyController.text;
+
+    _titleController.addListener(_onTextChanged);
     _bodyController.addListener(() {
+      _onTextChanged();
       setState(() {});
     });
   }
 
+  void _onTextChanged() {
+    final title = _titleController.text.trim();
+    final body = _bodyController.text;
+    if (title == _lastSavedTitle && body == _lastSavedBody) return;
+
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(seconds: 2), () {
+      _autoSave();
+    });
+  }
+
+  Future<void> _autoSave() async {
+    final title = _titleController.text.trim();
+    final body = _bodyController.text;
+    if (title.isEmpty) return;
+    if (title == _lastSavedTitle && body == _lastSavedBody) return;
+
+    if (!mounted) return;
+    setState(() {
+      _isAutoSaving = true;
+    });
+
+    final isEditing = _currentNoteId != null && _currentNoteId!.isNotEmpty;
+    final note = NoteModel(
+      id: isEditing ? _currentNoteId! : '',
+      title: title,
+      description: body,
+      createdAt: isEditing && widget.note != null
+          ? widget.note!.createdAt
+          : DateTime.now(),
+      updatedAt: DateTime.now(),
+      userId: isEditing && widget.note != null ? widget.note!.userId : '',
+      category: _categoryName,
+      isArchived: isEditing && widget.note != null
+          ? widget.note!.isArchived
+          : false,
+      colorValue: _selectedColor,
+      isPinned: _isPinned,
+    );
+
+    try {
+      final noteProvider = context.read<NoteProvider>();
+      if (isEditing) {
+        await noteProvider.updateNote(note);
+      } else {
+        final newId = await noteProvider.addNote(note);
+        _currentNoteId = newId;
+      }
+      _lastSavedTitle = title;
+      _lastSavedBody = body;
+    } catch (e) {
+      debugPrint('Auto-save error: $e');
+    }
+
+    if (mounted) {
+      setState(() {
+        _isAutoSaving = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     _titleController.dispose();
     _bodyController.dispose();
     super.dispose();
@@ -82,23 +163,31 @@ class _AddNotePageState extends State<AddNotePage> {
       _isSaving = true;
     });
 
-    final isEditing = widget.note != null;
+    final isEditing =
+        (_currentNoteId != null && _currentNoteId!.isNotEmpty) ||
+        widget.note != null;
+    final noteId = (_currentNoteId != null && _currentNoteId!.isNotEmpty)
+        ? _currentNoteId!
+        : '';
+
     final note = NoteModel(
-      id: isEditing ? widget.note!.id : '',
+      id: noteId,
       title: title,
       description: _bodyController.text.trim(),
-      createdAt: isEditing ? widget.note!.createdAt : DateTime.now(),
+      createdAt: (widget.note != null)
+          ? widget.note!.createdAt
+          : DateTime.now(),
       updatedAt: DateTime.now(),
-      userId: isEditing ? widget.note!.userId : '',
+      userId: (widget.note != null) ? widget.note!.userId : '',
       category: _categoryName,
-      isArchived: isEditing ? widget.note!.isArchived : false,
+      isArchived: (widget.note != null) ? widget.note!.isArchived : false,
       colorValue: _selectedColor,
       isPinned: _isPinned,
     );
 
     final noteProvider = context.read<NoteProvider>();
     final navigator = Navigator.of(context);
-    if (isEditing) {
+    if (isEditing && noteId.isNotEmpty) {
       await noteProvider.updateNote(note);
     } else {
       await noteProvider.addNote(note);
@@ -118,25 +207,65 @@ class _AddNotePageState extends State<AddNotePage> {
     Navigator.of(context).pop();
   }
 
+  void _showVersionHistory() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (context) {
+        return VersionHistorySheet(
+          currentNoteId: _currentNoteId!,
+          onRestore: (title, desc) {
+            Navigator.pop(context);
+            _restoreVersion(title, desc);
+          },
+        );
+      },
+    );
+  }
+
+  void _restoreVersion(String title, String desc) {
+    setState(() {
+      _titleController.text = title;
+      _bodyController.text = desc;
+      _isPreviewMode = false;
+    });
+    _autoSave();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Previous version restored successfully!'),
+        backgroundColor: AppColors.primaryGreen,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(16.r),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+      ),
+    );
+  }
+
   // Markdown Formatting Helper
   void _insertMarkdown(String prefix, String suffix) {
     final text = _bodyController.text;
     final selection = _bodyController.selection;
-    
+
     int start = selection.start;
     int end = selection.end;
-    
+
     if (start < 0 || end < 0) {
       start = text.length;
       end = text.length;
     }
-    
+
     final selectedText = text.substring(start, end);
     final replacement = '$prefix$selectedText$suffix';
-    
+
     final newText = text.replaceRange(start, end, replacement);
     _bodyController.text = newText;
-    
+
     _bodyController.selection = TextSelection.collapsed(
       offset: start + prefix.length + selectedText.length,
     );
@@ -183,7 +312,7 @@ class _AddNotePageState extends State<AddNotePage> {
                     final colorItem = colors[index];
                     final value = colorItem['value'] as int;
                     final isSelected = _selectedColor == value;
-                    
+
                     return GestureDetector(
                       onTap: () {
                         setState(() {
@@ -195,10 +324,14 @@ class _AddNotePageState extends State<AddNotePage> {
                         width: 50.r,
                         height: 50.r,
                         decoration: BoxDecoration(
-                          color: value == 0 ? AppColors.cardBackground : Color(value),
+                          color: value == 0
+                              ? AppColors.cardBackground
+                              : Color(value),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: isSelected ? AppColors.primaryMedium : AppColors.divider,
+                            color: isSelected
+                                ? AppColors.primaryMedium
+                                : AppColors.divider,
                             width: isSelected ? 2.5 : 1,
                           ),
                         ),
@@ -228,7 +361,7 @@ class _AddNotePageState extends State<AddNotePage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _AiAssistantPanel(
+      builder: (context) => AiAssistantPanel(
         titleController: _titleController,
         bodyController: _bodyController,
         onUpdate: () => setState(() {}),
@@ -238,13 +371,28 @@ class _AddNotePageState extends State<AddNotePage> {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = DateFormat('MMMM d, y').format(
-      widget.note != null ? widget.note!.createdAt : DateTime.now(),
-    );
+    final dateStr = DateFormat(
+      'MMMM d, y',
+    ).format(widget.note != null ? widget.note!.createdAt : DateTime.now());
 
-    final canvasColor = _selectedColor == 0
-        ? AppColors.background
-        : Color(_selectedColor);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasCustomColor = _selectedColor != 0;
+
+    final canvasColor = hasCustomColor
+        ? Color(_selectedColor)
+        : (isDark ? AppColors.darkBackground : AppColors.lightBackground);
+
+    final titleColor = hasCustomColor
+        ? AppColors.lightTextPrimary
+        : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary);
+
+    final bodyColor = hasCustomColor
+        ? AppColors.lightTextSecondary
+        : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary);
+
+    final hintColor = hasCustomColor
+        ? AppColors.lightTextMuted.withValues(alpha: 0.7)
+        : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted);
 
     return Hero(
       tag: widget.note != null ? 'note_${widget.note!.id}' : 'new_note_hero',
@@ -266,59 +414,134 @@ class _AddNotePageState extends State<AddNotePage> {
                         width: 36.w,
                         height: 36.h,
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceVariant,
+                          color: hasCustomColor
+                              ? Colors.black.withValues(alpha: 0.05)
+                              : (isDark
+                                    ? AppColors.darkSurfaceVariant
+                                    : AppColors.lightSurfaceVariant),
                           borderRadius: BorderRadius.circular(10.r),
                         ),
                         child: Icon(
                           Icons.close_rounded,
-                          color: AppColors.textSecondary,
+                          color: bodyColor,
                           size: 18.sp,
                         ),
                       ),
                     ),
-                    const Spacer(),
-
                     // Title
-                    Text(
-                      widget.note != null ? 'addNoteEdit'.tr : 'addNoteTitle'.tr,
-                      style: AppFontManager.headlineMedium,
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8.w),
+                        child: Text(
+                          widget.note != null
+                              ? 'addNoteEdit'.tr
+                              : 'addNoteTitle'.tr,
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppFontManager.headlineMedium.copyWith(
+                            color: titleColor,
+                          ),
+                        ),
+                      ),
                     ),
-                    const Spacer(),
 
-                    // Pin Button
+                    // Preview/Edit Toggle Button
                     IconButton(
                       icon: Icon(
-                        _isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
-                        color: _isPinned ? const Color(0xFFC6A052) : AppColors.textSecondary,
+                        _isPreviewMode
+                            ? Icons.edit_outlined
+                            : Icons.visibility_outlined,
+                        color: bodyColor,
                         size: 20.sp,
                       ),
+                      tooltip: _isPreviewMode ? 'Edit Note' : 'Preview Note',
                       onPressed: () {
                         setState(() {
-                          _isPinned = !_isPinned;
+                          _isPreviewMode = !_isPreviewMode;
                         });
                       },
                     ),
 
-                    // Delete/Archive button
-                    if (widget.note != null) ...[
-                      InkWell(
-                        onTap: () => _archiveNote(context),
-                        child: Container(
-                          width: 36.w,
-                          height: 36.h,
-                          margin: EdgeInsets.only(right: 12.w, left: 4.w),
-                          decoration: BoxDecoration(
-                            color: AppColors.error.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                          child: Icon(
-                            Icons.delete_outline_rounded,
-                            color: AppColors.error,
-                            size: 18.sp,
+                    // More Options Dropdown
+                    PopupMenuButton<String>(
+                      icon: Icon(
+                        Icons.more_vert_rounded,
+                        color: bodyColor,
+                        size: 20.sp,
+                      ),
+                      color: isDark ? AppColors.darkSurface : Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      onSelected: (value) {
+                        if (value == 'pin') {
+                          setState(() {
+                            _isPinned = !_isPinned;
+                          });
+                        } else if (value == 'history') {
+                          _showVersionHistory();
+                        } else if (value == 'delete') {
+                          _archiveNote(context);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem<String>(
+                          value: 'pin',
+                          child: Row(
+                            children: [
+                              Icon(
+                                _isPinned
+                                    ? Icons.push_pin_rounded
+                                    : Icons.push_pin_outlined,
+                                color: _isPinned ? const Color(0xFFC6A052) : bodyColor,
+                                size: 18.sp,
+                              ),
+                              AppSpacing.w10,
+                              Text(
+                                _isPinned ? 'Unpin Note' : 'Pin Note',
+                                style: AppFontManager.bodyMedium.copyWith(color: bodyColor),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
+                        if (_currentNoteId != null && _currentNoteId!.isNotEmpty)
+                          PopupMenuItem<String>(
+                            value: 'history',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.history_rounded,
+                                  color: bodyColor,
+                                  size: 18.sp,
+                                ),
+                                AppSpacing.w10,
+                                Text(
+                                  'Version History',
+                                  style: AppFontManager.bodyMedium.copyWith(color: bodyColor),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (widget.note != null)
+                          PopupMenuItem<String>(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: AppColors.error,
+                                  size: 18.sp,
+                                ),
+                                AppSpacing.w10,
+                                Text(
+                                  'Delete Note',
+                                  style: AppFontManager.bodyMedium.copyWith(color: AppColors.error),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
 
                     // Save button
                     AppSaveButton(
@@ -329,19 +552,31 @@ class _AddNotePageState extends State<AddNotePage> {
                 ),
               ),
 
-              const Divider(height: 1),
+              Divider(
+                height: 1,
+                color: hasCustomColor
+                    ? Colors.black.withValues(alpha: 0.08)
+                    : (isDark ? AppColors.darkDivider : AppColors.lightDivider),
+              ),
 
               // ─── Metadata row ─────────────────────────────────────────
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
                 child: Row(
                   children: [
-                    _MetaChip(
+                    MetaChip(
                       icon: Icons.calendar_today_outlined,
                       label: dateStr,
+                      hasCustomColor: hasCustomColor,
+                      isDark: isDark,
                     ),
                     AppSpacing.w10,
-                    _MetaChip(icon: Icons.folder_outlined, label: _categoryName),
+                    MetaChip(
+                      icon: Icons.folder_outlined,
+                      label: _categoryName,
+                      hasCustomColor: hasCustomColor,
+                      isDark: isDark,
+                    ),
                   ],
                 ),
               ),
@@ -355,45 +590,114 @@ class _AddNotePageState extends State<AddNotePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Title field
-                      TextField(
-                        textInputAction: TextInputAction.next,
-                        controller: _titleController,
-                        style: AppFontManager.inputTitle,
-                        maxLines: null,
-                        keyboardType: TextInputType.multiline,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: InputDecoration(
-                          hintText: 'addNoteTitleHint'.tr,
-                          hintStyle: AppFontManager.inputTitleHint,
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
-                          filled: false,
-                        ),
-                      ),
+                      _isPreviewMode
+                          ? Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8.h),
+                              child: Text(
+                                _titleController.text.isEmpty
+                                    ? 'Untitled'
+                                    : _titleController.text,
+                                style: AppFontManager.inputTitle.copyWith(
+                                  color: titleColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            )
+                          : TextField(
+                              textInputAction: TextInputAction.next,
+                              controller: _titleController,
+                              style: AppFontManager.inputTitle.copyWith(
+                                color: titleColor,
+                              ),
+                              maxLines: null,
+                              keyboardType: TextInputType.multiline,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: InputDecoration(
+                                hintText: 'addNoteTitleHint'.tr,
+                                hintStyle: AppFontManager.inputTitle.copyWith(
+                                  color: hintColor,
+                                ),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
+                                filled: false,
+                              ),
+                            ),
                       AppSpacing.h12,
 
-                      const Divider(color: AppColors.divider),
+                      Divider(
+                        color: hasCustomColor
+                            ? Colors.black.withValues(alpha: 0.08)
+                            : (isDark
+                                  ? AppColors.darkDivider
+                                  : AppColors.lightDivider),
+                      ),
                       AppSpacing.h12,
 
                       // Body field
-                      TextField(
-                        controller: _bodyController,
-                        style: AppFontManager.inputBody,
-                        maxLines: null,
-                        keyboardType: TextInputType.multiline,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: InputDecoration(
-                          hintText: 'addNoteBodyHint'.tr,
-                          hintStyle: AppFontManager.inputBodyHint,
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
-                          filled: false,
-                        ),
-                      ),
+                      _isPreviewMode
+                          ? Padding(
+                              padding: EdgeInsets.only(bottom: 40.h),
+                              child: _bodyController.text.trim().isEmpty
+                                  ? Container(
+                                      width: double.infinity,
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 40.h,
+                                        horizontal: 16.w,
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.edit_note_rounded,
+                                            size: 40.sp,
+                                            color: bodyColor.withValues(
+                                              alpha: 0.25,
+                                            ),
+                                          ),
+                                          SizedBox(height: 12.h),
+                                          Text(
+                                            'No content yet.\nSwitch to edit mode to start writing!',
+                                            textAlign: TextAlign.center,
+                                            style: AppFontManager.bodyMedium
+                                                .copyWith(
+                                                  color: bodyColor.withValues(
+                                                    alpha: 0.45,
+                                                  ),
+                                                  height: 1.4,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : MarkdownText(
+                                      text: _bodyController.text,
+                                      textColor: bodyColor,
+                                    ),
+                            )
+                          : TextField(
+                              controller: _bodyController,
+                              style: AppFontManager.inputBody.copyWith(
+                                color: bodyColor,
+                              ),
+                              maxLines: null,
+                              keyboardType: TextInputType.multiline,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: InputDecoration(
+                                hintText: 'addNoteBodyHint'.tr,
+                                hintStyle: AppFontManager.inputBody.copyWith(
+                                  color: hintColor,
+                                ),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
+                                filled: false,
+                              ),
+                            ),
                       AppSpacing.h40,
                     ],
                   ),
@@ -404,421 +708,164 @@ class _AddNotePageState extends State<AddNotePage> {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: hasCustomColor
+                      ? Colors.black.withValues(alpha: 0.03)
+                      : (isDark
+                            ? AppColors.darkSurface
+                            : AppColors.lightSurface),
                   border: Border(
                     top: BorderSide(
-                      color: AppColors.divider.withValues(alpha: 0.5),
+                      color: hasCustomColor
+                          ? Colors.black.withValues(alpha: 0.08)
+                          : AppColors.divider.withValues(alpha: 0.5),
                       width: 0.5,
                     ),
                   ),
                 ),
                 child: Row(
-                  children: [
-                    // Color picker launcher
-                    IconButton(
-                      icon: Icon(
-                        Icons.palette_outlined,
-                        color: AppColors.primaryMedium,
-                        size: 20.sp,
-                      ),
-                      onPressed: _showColorPicker,
-                    ),
-                    
-                    // Sparkles AI Assistant button
-                    IconButton(
-                      icon: Icon(
-                        Icons.auto_awesome_rounded,
-                        color: const Color(0xFF8B5CF6), // Purple AI glow
-                        size: 20.sp,
-                      ),
-                      tooltip: 'Gemini AI Assistant',
-                      onPressed: _showAiAssistant,
-                    ),
-                    
-                    Container(
-                      height: 20.h,
-                      width: 1.w,
-                      color: AppColors.divider,
-                      margin: EdgeInsets.symmetric(horizontal: 4.w),
-                    ),
+                  children: _isPreviewMode
+                      ? [
+                          const Spacer(),
+                          Builder(
+                            builder: (context) {
+                              final text = _bodyController.text.trim();
+                              final words = text.isEmpty
+                                  ? 0
+                                  : text.split(RegExp(r'\s+')).length;
+                              final readTime = (words / 200).ceil();
+                              final saveStatus = _isAutoSaving
+                                  ? ' • Saving...'
+                                  : (_currentNoteId != null &&
+                                            _currentNoteId!.isNotEmpty
+                                        ? ' • Saved'
+                                        : '');
 
-                    // Formatting helpers
-                    _ToolbarButton(
-                      icon: Icons.format_bold_rounded,
-                      onPressed: () => _insertMarkdown('**', '**'),
-                    ),
-                    _ToolbarButton(
-                      icon: Icons.format_italic_rounded,
-                      onPressed: () => _insertMarkdown('*', '*'),
-                    ),
-                    _ToolbarButton(
-                      icon: Icons.format_underlined_rounded,
-                      onPressed: () => _insertMarkdown('<u>', '</u>'),
-                    ),
-                    _ToolbarButton(
-                      icon: Icons.title_rounded,
-                      onPressed: () => _insertMarkdown('# ', ''),
-                    ),
-                    _ToolbarButton(
-                      icon: Icons.format_list_bulleted_rounded,
-                      onPressed: () => _insertMarkdown('- ', ''),
-                    ),
-                    _ToolbarButton(
-                      icon: Icons.checklist_rounded,
-                      onPressed: () => _insertMarkdown('- [ ] ', ''),
-                    ),
+                              return Text(
+                                '$words ${'wordCount'.tr} • $readTime ${'readTime'.tr}$saveStatus',
+                                style: AppFontManager.bodySmall.copyWith(
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: bodyColor,
+                                ),
+                              );
+                            },
+                          ),
+                          const Spacer(),
+                        ]
+                      : [
+                          // Color picker launcher
+                          IconButton(
+                            icon: Icon(
+                              Icons.palette_outlined,
+                              color: hasCustomColor
+                                  ? bodyColor
+                                  : AppColors.primaryGreen,
+                              size: 20.sp,
+                            ),
+                            onPressed: _showColorPicker,
+                          ),
 
-                    const Spacer(),
+                          // Sparkles AI Assistant button
+                          IconButton(
+                            icon: Icon(
+                              Icons.auto_awesome_rounded,
+                              color: const Color(0xFF8B5CF6), // Purple AI glow
+                              size: 20.sp,
+                            ),
+                            tooltip: 'Gemini AI Assistant',
+                            onPressed: _showAiAssistant,
+                          ),
 
-                    // Statistics (Word Count & Reading Time)
-                    Builder(builder: (context) {
-                      final text = _bodyController.text.trim();
-                      final words = text.isEmpty ? 0 : text.split(RegExp(r'\s+')).length;
-                      final readTime = (words / 200).ceil();
-                      
-                      return Text(
-                        '$words ${'wordCount'.tr} • $readTime ${'readTime'.tr}',
-                        style: AppFontManager.bodySmall.copyWith(
-                          fontSize: 10.sp,
-                          color: AppColors.textSecondary,
-                        ),
-                      );
-                    }),
-                  ],
+                          Container(
+                            height: 20.h,
+                            width: 1.w,
+                            color: hasCustomColor
+                                ? Colors.black.withValues(alpha: 0.08)
+                                : AppColors.divider,
+                            margin: EdgeInsets.symmetric(horizontal: 4.w),
+                          ),
+
+                          // Formatting helpers inside a horizontal scroll view to fix overflow
+                          Expanded(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ToolbarButton(
+                                    icon: Icons.format_bold_rounded,
+                                    color: bodyColor,
+                                    onPressed: () =>
+                                        _insertMarkdown('**', '**'),
+                                  ),
+                                  ToolbarButton(
+                                    icon: Icons.format_italic_rounded,
+                                    color: bodyColor,
+                                    onPressed: () => _insertMarkdown('*', '*'),
+                                  ),
+                                  ToolbarButton(
+                                    icon: Icons.format_underlined_rounded,
+                                    color: bodyColor,
+                                    onPressed: () =>
+                                        _insertMarkdown('<u>', '</u>'),
+                                  ),
+                                  ToolbarButton(
+                                    icon: Icons.title_rounded,
+                                    color: bodyColor,
+                                    onPressed: () => _insertMarkdown('# ', ''),
+                                  ),
+                                  ToolbarButton(
+                                    icon: Icons.format_list_bulleted_rounded,
+                                    color: bodyColor,
+                                    onPressed: () => _insertMarkdown('- ', ''),
+                                  ),
+                                  ToolbarButton(
+                                    icon: Icons.checklist_rounded,
+                                    color: bodyColor,
+                                    onPressed: () =>
+                                        _insertMarkdown('- [ ] ', ''),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // Statistics (Compact)
+                          Padding(
+                            padding: EdgeInsets.only(left: 6.w),
+                            child: Builder(
+                              builder: (context) {
+                                final text = _bodyController.text.trim();
+                                final words = text.isEmpty
+                                    ? 0
+                                    : text.split(RegExp(r'\s+')).length;
+                                final saveStatus = _isAutoSaving
+                                    ? 'Saving...'
+                                    : (_currentNoteId != null &&
+                                              _currentNoteId!.isNotEmpty
+                                          ? 'Saved'
+                                          : '');
+
+                                return Text(
+                                  saveStatus.isNotEmpty
+                                      ? '$words w • $saveStatus'
+                                      : '$words w',
+                                  style: AppFontManager.bodySmall.copyWith(
+                                    fontSize: 10.sp,
+                                    color: _isAutoSaving
+                                        ? const Color(0xFF8B5CF6)
+                                        : bodyColor.withValues(alpha: 0.7),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MetaChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _MetaChip({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: AppPadding.h10v6,
-      decoration: BoxDecoration(
-        color: AppColors.chipBackground,
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: AppColors.chipBorder, width: 0.8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12.sp, color: AppColors.primaryMedium),
-          AppSpacing.w6,
-          Text(
-            label,
-            style: AppFontManager.labelMedium.copyWith(
-              color: AppColors.primaryMedium,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ToolbarButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  const _ToolbarButton({required this.icon, required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      visualDensity: VisualDensity.compact,
-      icon: Icon(icon, color: AppColors.textSecondary, size: 18.sp),
-      onPressed: onPressed,
-    );
-  }
-}
-
-// ─── Gemini AI Assistant Panel ─────────────────────────────────────────────
-class _AiAssistantPanel extends StatefulWidget {
-  final TextEditingController titleController;
-  final TextEditingController bodyController;
-  final VoidCallback onUpdate;
-
-  const _AiAssistantPanel({
-    required this.titleController,
-    required this.bodyController,
-    required this.onUpdate,
-  });
-
-  @override
-  State<_AiAssistantPanel> createState() => _AiAssistantPanelState();
-}
-
-class _AiAssistantPanelState extends State<_AiAssistantPanel> {
-  bool _isLoading = false;
-  String _aiResult = '';
-  String _selectedAction = '';
-
-  Future<void> _triggerAction(String action) async {
-    setState(() {
-      _isLoading = true;
-      _aiResult = '';
-      _selectedAction = action;
-    });
-
-    String result = '';
-    if (action == 'improve') {
-      result = await GeminiService.instance.improveText(widget.bodyController.text);
-    } else if (action == 'title') {
-      result = await GeminiService.instance.suggestTitle(
-        widget.titleController.text,
-        widget.bodyController.text,
-      );
-    } else if (action == 'pronounce') {
-      result = await GeminiService.instance.fixMispronunciations(widget.bodyController.text);
-    }
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-        _aiResult = result;
-      });
-    }
-  }
-
-  void _applyChanges() {
-    if (_aiResult.isEmpty) return;
-    if (_selectedAction == 'title') {
-      widget.titleController.text = _aiResult;
-    } else {
-      widget.bodyController.text = _aiResult;
-    }
-    widget.onUpdate();
-    Navigator.of(context).pop();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        top: 20.h,
-        left: 24.w,
-        right: 24.w,
-        bottom: 32.h + MediaQuery.of(context).viewInsets.bottom,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 30,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 40.w,
-              height: 4.h,
-              margin: EdgeInsets.only(bottom: 20.h),
-              decoration: BoxDecoration(
-                color: AppColors.divider,
-                borderRadius: BorderRadius.circular(2.r),
-              ),
-            ),
-          ),
-
-          Row(
-            children: [
-              Icon(Icons.auto_awesome_rounded, color: const Color(0xFF8B5CF6), size: 24.sp),
-              AppSpacing.w8,
-              Text(
-                'Gemini AI Note Assistant',
-                style: AppFontManager.headlineLarge.copyWith(fontSize: 20.sp),
-              ),
-            ],
-          ),
-          AppSpacing.h4,
-          Text(
-            'Refine spelling, fix verbal slips, or generate ideas with AI.',
-            style: AppFontManager.bodySmall,
-          ),
-          AppSpacing.h20,
-
-          if (_aiResult.isEmpty && !_isLoading) ...[
-            // Actions Selection Grid
-            Row(
-              children: [
-                Expanded(
-                  child: _AiCard(
-                    icon: Icons.auto_fix_high_rounded,
-                    label: 'Polish Note',
-                    subLabel: 'Grammar & Flow',
-                    onTap: () => _triggerAction('improve'),
-                  ),
-                ),
-                AppSpacing.w12,
-                Expanded(
-                  child: _AiCard(
-                    icon: Icons.title_rounded,
-                    label: 'Suggest Title',
-                    subLabel: 'Auto-generate title',
-                    onTap: () => _triggerAction('title'),
-                  ),
-                ),
-              ],
-            ),
-            AppSpacing.h12,
-            _AiCard(
-              icon: Icons.record_voice_over_rounded,
-              label: 'Fix Voice Transcription Mistakes',
-              subLabel: 'Fix phonetic misspellings & mispronunciations',
-              onTap: () => _triggerAction('pronounce'),
-            ),
-          ] else ...[
-            // Output / Loading panel
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(16.r),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(16.r),
-                border: Border.all(color: AppColors.divider),
-              ),
-              child: _isLoading
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AppSpacing.h24,
-                        const CircularProgressIndicator(color: Color(0xFF8B5CF6)),
-                        AppSpacing.h16,
-                        Text(
-                          'Gemini is working its magic...',
-                          style: AppFontManager.bodyMedium.copyWith(fontStyle: FontStyle.italic),
-                        ),
-                        AppSpacing.h24,
-                      ],
-                    )
-                  : SingleChildScrollView(
-                      child: Text(
-                        _aiResult,
-                        style: AppFontManager.bodyMedium.copyWith(
-                          color: AppColors.textPrimary,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-            ),
-            AppSpacing.h20,
-            if (!_isLoading)
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        setState(() {
-                          _aiResult = '';
-                          _selectedAction = '';
-                        });
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 14.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14.r),
-                        ),
-                      ),
-                      child: Text('Retry', style: AppFontManager.buttonSmall),
-                    ),
-                  ),
-                  AppSpacing.w12,
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _applyChanges,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B5CF6),
-                        padding: EdgeInsets.symmetric(vertical: 14.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14.r),
-                        ),
-                      ),
-                      child: Text(
-                        'Apply to Note',
-                        style: AppFontManager.buttonSmall.copyWith(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _AiCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String subLabel;
-  final VoidCallback onTap;
-
-  const _AiCard({
-    required this.icon,
-    required this.label,
-    required this.subLabel,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(16.r),
-        decoration: BoxDecoration(
-          color: AppColors.primarySurface.withValues(alpha: 0.25),
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: AppColors.primarySurface, width: 1.5),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(10.r),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: const Color(0xFF8B5CF6), size: 20.sp),
-            ),
-            AppSpacing.w12,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: AppFontManager.headlineMedium.copyWith(fontSize: 14.sp),
-                  ),
-                  AppSpacing.h2,
-                  Text(
-                    subLabel,
-                    style: AppFontManager.caption,
-                  ),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );

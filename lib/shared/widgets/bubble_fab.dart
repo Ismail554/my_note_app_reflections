@@ -26,11 +26,7 @@ class BubbleFab extends StatefulWidget {
   final List<BubbleMenuItem> items;
   final bool visible;
 
-  const BubbleFab({
-    super.key,
-    required this.items,
-    this.visible = true,
-  });
+  const BubbleFab({super.key, required this.items, this.visible = true});
 
   @override
   State<BubbleFab> createState() => _BubbleFabState();
@@ -100,17 +96,14 @@ class _BubbleFabState extends State<BubbleFab>
               animation: _controller,
               builder: (ctx, child) {
                 final t = itemInterval.transform(_controller.value);
-                final offsetY = -(64.h * (i + 1)) * t;
+                final offsetY = (64.h * (i + 1)) * t;
 
                 return Positioned(
-                  bottom: 56.r + offsetY,
+                  bottom: 40.h + offsetY,
                   right: 6.w,
                   child: Opacity(
                     opacity: t.clamp(0.0, 1.0),
-                    child: Transform.scale(
-                      scale: 0.4 + 0.6 * t,
-                      child: child,
-                    ),
+                    child: Transform.scale(scale: 0.4 + 0.6 * t, child: child),
                   ),
                 );
               },
@@ -206,7 +199,7 @@ class _BubbleItem extends StatelessWidget {
         children: [
           // Label pill
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
             decoration: BoxDecoration(
               color: isDark
                   ? AppColors.darkSurface.withValues(alpha: 0.96)
@@ -223,12 +216,14 @@ class _BubbleItem extends StatelessWidget {
             child: Text(
               item.label,
               style: AppFontManager.labelMedium.copyWith(
-                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.lightTextPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
-          SizedBox(width: 10.w),
+          SizedBox(width: 8.w),
           // Icon circle
           Container(
             width: 44.r,

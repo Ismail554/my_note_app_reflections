@@ -7,12 +7,15 @@ class GeminiService {
   GeminiService._();
   static final GeminiService instance = GeminiService._();
 
-  static String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
+  static String get _apiKey => (dotenv.env['GEMINI_API_KEY'] ?? '').trim();
   static String get _url =>
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$_apiKey';
-
+      'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$_apiKey';
 
   Future<String> _callGemini(String prompt) async {
+    if (_apiKey.isEmpty) {
+      return 'Error: GEMINI_API_KEY is not configured in your .env file.';
+    }
+
     try {
       final response = await http.post(
         Uri.parse(_url),
@@ -33,7 +36,15 @@ class GeminiService {
         final text = data['candidates']?[0]?['content']?['parts']?[0]?['text'] as String?;
         return text?.trim() ?? 'No response received from AI.';
       } else {
-        return 'AI service is temporarily unavailable. Code: ${response.statusCode}';
+        print('Gemini API Error (${response.statusCode}): ${response.body}');
+        try {
+          final errorData = jsonDecode(response.body);
+          final errorMessage = errorData['error']?['message'] as String?;
+          if (errorMessage != null) {
+            return 'AI Error: $errorMessage (Code: ${response.statusCode})';
+          }
+        } catch (_) {}
+        return 'AI service returned error code: ${response.statusCode}';
       }
     } catch (e) {
       return 'Failed to reach AI helper: $e';

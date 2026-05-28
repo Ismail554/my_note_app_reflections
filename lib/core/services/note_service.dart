@@ -54,12 +54,65 @@ class NoteService {
         });
   }
 
-  Future<void> addNote(NoteModel note) async {
-    await _notesRef.add(note.toMap());
+  Future<String> addNote(NoteModel note) async {
+    final docRef = note.id.isEmpty ? _notesRef.doc() : _notesRef.doc(note.id);
+    final noteWithId = note.copyWith(id: docRef.id);
+    await docRef.set(noteWithId.toMap());
+    return docRef.id;
   }
 
   Future<void> updateNote(NoteModel note) async {
+    try {
+      final currentDoc = await _notesRef.doc(note.id).get();
+      if (currentDoc.exists) {
+        final currentData = currentDoc.data();
+        if (currentData != null) {
+          final oldTitle = currentData['title'] as String? ?? '';
+          final oldDescription = currentData['description'] as String? ?? '';
+          if (oldTitle != note.title || oldDescription != note.description) {
+            await addNoteVersion(note.id, oldTitle, oldDescription);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Version auto-save error: $e');
+    }
     await _notesRef.doc(note.id).update(note.toMap());
+  }
+
+  Future<void> addNoteVersion(String noteId, String title, String description) async {
+    try {
+      final versionsRef = _notesRef.doc(noteId).collection('versions');
+      final latest = await versionsRef.orderBy('updatedAt', descending: true).limit(1).get();
+      if (latest.docs.isNotEmpty) {
+        final latestData = latest.docs.first.data();
+        if (latestData['title'] == title && latestData['description'] == description) {
+          return; // Duplicate
+        }
+      }
+      await versionsRef.add({
+        'title': title,
+        'description': description,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Failed to save note version: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getNoteVersions(String noteId) async {
+    try {
+      final snapshot = await _notesRef.doc(noteId).collection('versions').orderBy('updatedAt', descending: true).get();
+      return snapshot.docs.map((doc) => {
+        'id': doc.id,
+        'title': doc.data()['title'] as String? ?? '',
+        'description': doc.data()['description'] as String? ?? '',
+        'updatedAt': (doc.data()['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      }).toList();
+    } catch (e) {
+      debugPrint('Failed to load note versions: $e');
+      return [];
+    }
   }
 
   Future<void> archiveNote(String id, bool isArchived) async {

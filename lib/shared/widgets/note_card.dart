@@ -14,8 +14,19 @@ class NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasCustomColor = note.colorValue != 0;
-    final backgroundColor = hasCustomColor ? Color(note.colorValue) : AppColors.cardBackground;
+    final backgroundColor = hasCustomColor 
+        ? Color(note.colorValue) 
+        : (isDark ? AppColors.darkSurface : AppColors.lightSurface);
+
+    final titleColor = hasCustomColor 
+        ? AppColors.lightTextPrimary 
+        : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary);
+
+    final previewColor = hasCustomColor 
+        ? AppColors.lightTextSecondary 
+        : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary);
 
     return Hero(
       tag: 'note_${note.id}',
@@ -31,9 +42,12 @@ class NoteCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: backgroundColor,
               borderRadius: BorderRadius.circular(16.r),
-              border: hasCustomColor
-                  ? Border.all(color: Color(note.colorValue).withValues(alpha: 0.8), width: 1)
-                  : null,
+              border: Border.all(
+                color: hasCustomColor
+                    ? Color(note.colorValue).withValues(alpha: 0.15)
+                    : (isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                width: 1,
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.03),
@@ -54,7 +68,7 @@ class NoteCard extends StatelessWidget {
                       child: Text(
                         note.title,
                         style: AppFontManager.headlineLarge.copyWith(
-                          color: AppColors.textPrimary,
+                          color: titleColor,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -81,7 +95,7 @@ class NoteCard extends StatelessWidget {
                   Text(
                     note.preview,
                     style: AppFontManager.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
+                      color: previewColor,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,

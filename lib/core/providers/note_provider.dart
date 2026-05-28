@@ -128,15 +128,19 @@ class NoteProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addNote(NoteModel note) async {
+  Future<String> addNote(NoteModel note) async {
     final noteWithUser = note.copyWith(
       userId: FirebaseAuth.instance.currentUser?.uid ?? '',
     );
-    await NoteService.instance.addNote(noteWithUser);
+    return await NoteService.instance.addNote(noteWithUser);
   }
 
   Future<void> updateNote(NoteModel updatedNote) async {
     await NoteService.instance.updateNote(updatedNote);
+  }
+
+  Future<List<Map<String, dynamic>>> getNoteVersions(String noteId) async {
+    return await NoteService.instance.getNoteVersions(noteId);
   }
 
   Future<void> archiveNote(String id, bool isArchived) async {

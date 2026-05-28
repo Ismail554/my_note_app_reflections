@@ -84,12 +84,19 @@ class NoteModel {
     return '${months[createdAt.month - 1]} ${createdAt.day}';
   }
 
-  /// Preview of description (first 120 characters)
+  /// Preview of description (first 120 characters) stripped of markdown tags for a clean card view
   String get preview {
     if (description.isEmpty) return '';
-    return description.length > 120
-        ? '${description.substring(0, 120)}...'
-        : description;
+    String clean = description
+        .replaceAll(RegExp(r'\*\*|<u>|</u>|\*|# |## '), '')
+        .replaceAll(RegExp(r'- \[[ x]\] '), '')
+        .replaceAll(RegExp(r'- '), '')
+        .replaceAll(RegExp(r'\n+'), ' ')
+        .trim();
+
+    return clean.length > 120
+        ? '${clean.substring(0, 120)}...'
+        : clean;
   }
 
     NoteModel copyWith({

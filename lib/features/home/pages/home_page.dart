@@ -69,10 +69,8 @@ class _HomePageState extends State<HomePage> {
           if (index >= 0 && index <= 2)
             Positioned(
               right: 16.w,
-              bottom: 76.h,
-              child: BubbleFab(
-                items: _buildBubbleItems(context),
-              ),
+              bottom: 100.h,
+              child: BubbleFab(items: _buildBubbleItems(context)),
             ),
         ],
       ),
