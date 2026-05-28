@@ -70,6 +70,10 @@ class SettingsProvider extends ChangeNotifier {
     final locale = LanguageProvider.instance.locale;
     if (locale.languageCode == 'es') {
       _currentLanguage = 'Español';
+    } else if (locale.languageCode == 'bn') {
+      _currentLanguage = 'বাংলা';
+    } else if (locale.languageCode == 'hi') {
+      _currentLanguage = 'हिन्दी';
     } else {
       _currentLanguage = 'English';
     }
@@ -79,6 +83,12 @@ class SettingsProvider extends ChangeNotifier {
     if (langCode == 'es') {
       LanguageProvider.instance.changeLocale(const Locale('es', 'ES'));
       _currentLanguage = 'Español';
+    } else if (langCode == 'bn') {
+      LanguageProvider.instance.changeLocale(const Locale('bn', 'BD'));
+      _currentLanguage = 'বাংলা';
+    } else if (langCode == 'hi') {
+      LanguageProvider.instance.changeLocale(const Locale('hi', 'IN'));
+      _currentLanguage = 'हिन्दी';
     } else {
       LanguageProvider.instance.changeLocale(const Locale('en', 'US'));
       _currentLanguage = 'English';

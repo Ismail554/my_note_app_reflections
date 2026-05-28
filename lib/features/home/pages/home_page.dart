@@ -15,6 +15,7 @@ import 'package:Reflections/features/reminder/state/reminder_provider.dart';
 import 'package:Reflections/shared/widgets/create_entity_sheets.dart';
 import 'package:Reflections/shared/widgets/bubble_fab.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
+import 'package:Reflections/features/timer/presentation/pages/focus_timer_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -102,6 +103,17 @@ class _HomePageState extends State<HomePage> {
         label: 'Set Reminder',
         color: const Color(0xFF2980B9),
         onTap: () => CreateEntitySheets.showAddReminderSheet(context),
+      ),
+      BubbleMenuItem(
+        icon: Icons.timer_outlined,
+        label: 'Focus Timer',
+        color: AppColors.accent,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const FocusTimerPage(),
+          ),
+        ),
       ),
     ];
   }

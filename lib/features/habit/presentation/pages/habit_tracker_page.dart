@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
@@ -7,6 +8,7 @@ import 'package:Reflections/features/habit/state/habit_provider.dart';
 import 'package:Reflections/features/habit/data/models/habit_model.dart';
 import 'package:Reflections/features/habit/presentation/widgets/heatmap_grid.dart';
 import 'package:Reflections/shared/widgets/create_entity_sheets.dart';
+import 'package:Reflections/features/timer/presentation/pages/focus_timer_page.dart';
 
 class HabitTrackerPage extends StatefulWidget {
   const HabitTrackerPage({super.key});
@@ -246,8 +248,23 @@ class _HabitCard extends StatelessWidget {
 
     return Dismissible(
       key: ValueKey(habit.id),
-      direction: DismissDirection.endToStart,
+      direction: DismissDirection.horizontal,
       background: Container(
+        alignment: Alignment.centerLeft,
+        padding: EdgeInsets.only(left: 20.w),
+        decoration: BoxDecoration(
+          color: isDone 
+              ? Colors.orange.withValues(alpha: 0.15) 
+              : AppColors.success.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(14.r),
+        ),
+        child: Icon(
+          isDone ? Icons.undo_rounded : Icons.check_circle_outline_rounded,
+          color: isDone ? Colors.orange : AppColors.success,
+          size: 22.sp,
+        ),
+      ),
+      secondaryBackground: Container(
         alignment: Alignment.centerRight,
         padding: EdgeInsets.only(right: 20.w),
         decoration: BoxDecoration(
@@ -256,20 +273,30 @@ class _HabitCard extends StatelessWidget {
         ),
         child: Icon(Icons.delete_rounded, color: AppColors.error, size: 22.sp),
       ),
-      confirmDismiss: (_) async {
-        return await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Delete Habit?'),
-            content: Text('Remove "${habit.name}" permanently?'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
-            ],
-          ),
-        );
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          HapticFeedback.mediumImpact();
+          onToggle();
+          return false; // Spring back
+        } else {
+          return await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Delete Habit?'),
+              content: Text('Remove "${habit.name}" permanently?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+              ],
+            ),
+          );
+        }
       },
-      onDismissed: (_) => onDelete(),
+      onDismissed: (direction) {
+        if (direction == DismissDirection.endToStart) {
+          onDelete();
+        }
+      },
       child: GestureDetector(
         onTap: onToggle,
         child: AnimatedContainer(
@@ -348,7 +375,32 @@ class _HabitCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                SizedBox(width: 8.w),
               ],
+              // Timer launch button
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => FocusTimerPage(associatedHabit: habit),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: EdgeInsets.all(8.r),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.timer_outlined,
+                    color: AppColors.accent,
+                    size: 18.sp,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

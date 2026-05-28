@@ -7,6 +7,7 @@ import 'package:Reflections/features/habit/state/habit_provider.dart';
 import 'package:Reflections/features/todo/state/todo_provider.dart';
 import 'package:Reflections/features/reminder/state/reminder_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:Reflections/features/timer/presentation/pages/focus_timer_page.dart';
 
 class TodayDashboard extends StatelessWidget {
   const TodayDashboard({super.key});
@@ -63,20 +64,71 @@ class _GreetingHeader extends StatelessWidget {
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            _greeting,
-            style: AppFontManager.displayLarge.copyWith(
-              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _greeting,
+                  style: AppFontManager.displayLarge.copyWith(
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  dateStr,
+                  style: AppFontManager.bodyMedium.copyWith(
+                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                  ),
+                ),
+              ],
             ),
           ),
-          SizedBox(height: 4.h),
-          Text(
-            dateStr,
-            style: AppFontManager.bodyMedium.copyWith(
-              color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+          // Premium Focus Timer access
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const FocusTimerPage(),
+                ),
+              );
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+              decoration: BoxDecoration(
+                color: isDark 
+                    ? AppColors.darkSurfaceVariant 
+                    : AppColors.primaryGreen.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(
+                  color: isDark 
+                      ? AppColors.darkDivider 
+                      : AppColors.primaryGreen.withValues(alpha: 0.12),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.timer_outlined,
+                    color: isDark ? AppColors.mediumGreen : AppColors.primaryGreen,
+                    size: 20.sp,
+                  ),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'Focus',
+                    style: AppFontManager.buttonSmall.copyWith(
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

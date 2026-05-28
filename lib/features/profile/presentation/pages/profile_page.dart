@@ -236,6 +236,16 @@ class SettingsPage extends StatelessWidget {
               trailing: settings.currentLanguage == 'Español' ? const Icon(Icons.check, color: AppColors.accent) : null,
               onTap: () { settings.changeLanguage('es'); Navigator.pop(ctx); },
             ),
+            ListTile(
+              title: const Text('বাংলা (Bangla)'),
+              trailing: settings.currentLanguage == 'বাংলা' ? const Icon(Icons.check, color: AppColors.accent) : null,
+              onTap: () { settings.changeLanguage('bn'); Navigator.pop(ctx); },
+            ),
+            ListTile(
+              title: const Text('हिन्दी (Hindi)'),
+              trailing: settings.currentLanguage == 'हिन्दी' ? const Icon(Icons.check, color: AppColors.accent) : null,
+              onTap: () { settings.changeLanguage('hi'); Navigator.pop(ctx); },
+            ),
           ],
         ),
       ),

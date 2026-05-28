@@ -20,6 +20,18 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textStyle = AppFontManager.bodyMedium.copyWith(
+      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+    );
+    final circleColor = isDark 
+        ? AppColors.darkSurfaceVariant 
+        : AppColors.primaryGreen.withValues(alpha: 0.08);
+    final iconColor = isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen;
+
+    final buttonBgColor = isDark ? AppColors.mediumGreen : AppColors.primaryGreen;
+    final buttonTextColor = isDark ? AppColors.darkBackground : AppColors.white;
+
     return Center(
       child: Padding(
         padding: EdgeInsets.all(32.r),
@@ -27,15 +39,15 @@ class EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 72.w,
-              height: 72.h,
-              decoration: const BoxDecoration(
-                color: AppColors.primarySurface,
+              width: 72.r,
+              height: 72.r,
+              decoration: BoxDecoration(
+                color: circleColor,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
-                color: AppColors.primaryXLight,
+                color: iconColor,
                 size: 32.sp,
               ),
             ),
@@ -43,7 +55,7 @@ class EmptyState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: AppFontManager.bodyMedium,
+              style: textStyle,
             ),
             if (actionLabel != null && onAction != null) ...[
               AppSpacing.h20,
@@ -52,12 +64,14 @@ class EmptyState extends StatelessWidget {
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryDark,
+                    color: buttonBgColor,
                     borderRadius: BorderRadius.circular(50.r),
                   ),
                   child: Text(
                     actionLabel!,
-                    style: AppFontManager.buttonSmall,
+                    style: AppFontManager.buttonSmall.copyWith(
+                      color: buttonTextColor,
+                    ),
                   ),
                 ),
               ),
