@@ -67,8 +67,9 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: ScaleTransition(
@@ -82,13 +83,13 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                   width: 80.r,
                   height: 80.r,
                   decoration: BoxDecoration(
-                    color: AppColors.primarySurface,
+                    color: isDark ? AppColors.darkSurface : AppColors.primarySurface,
                     shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: Icon(
                       Icons.edit_note_rounded,
-                      color: AppColors.primaryDark,
+                      color: isDark ? AppColors.accentLight : AppColors.primaryDark,
                       size: 36.r,
                     ),
                   ),
@@ -96,14 +97,19 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                 AppSpacing.h28,
 
                 // ─── App Name ─────────────────────────────────────────────
-                Text(AppStrings.appName, style: AppFontManager.displayMedium),
+                Text(
+                  AppStrings.appName,
+                  style: AppFontManager.displayMedium.copyWith(
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  ),
+                ),
                 AppSpacing.h10,
 
                 // ─── Tagline ──────────────────────────────────────────────
                 Text(
                   AppStrings.appTagline,
                   style: AppFontManager.bodyMedium.copyWith(
-                    color: AppColors.textMuted,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textMuted,
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -125,6 +131,7 @@ class _AnimatedDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(3, (i) {
@@ -145,8 +152,8 @@ class _AnimatedDots extends StatelessWidget {
                   child: Container(
                     width: 8.r,
                     height: 8.r,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primaryMedium,
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.accentLight : AppColors.primaryMedium,
                       shape: BoxShape.circle,
                     ),
                   ),

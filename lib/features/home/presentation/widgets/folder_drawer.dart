@@ -14,9 +14,16 @@ class FolderDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final noteProvider = context.watch<NoteProvider>();
     final selected = noteProvider.selectedFolder;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final drawerBg = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final headerBg = isDark ? AppColors.darkSurfaceVariant : AppColors.accentSurface;
+    final primaryTextColor = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final secondaryTextColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final dividerColor = isDark ? AppColors.darkDivider : AppColors.lightDivider;
 
     return Drawer(
-      backgroundColor: AppColors.surface,
+      backgroundColor: drawerBg,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -26,7 +33,7 @@ class FolderDrawer extends StatelessWidget {
               width: double.infinity,
               padding: EdgeInsets.fromLTRB(24.w, 30.h, 24.w, 24.h),
               decoration: BoxDecoration(
-                color: AppColors.primarySurface,
+                color: headerBg,
                 borderRadius: BorderRadius.only(
                   bottomRight: Radius.circular(32.r),
                 ),
@@ -36,10 +43,10 @@ class FolderDrawer extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 28.r,
-                    backgroundColor: AppColors.primaryMedium,
+                    backgroundColor: isDark ? AppColors.accent : AppColors.primaryMedium,
                     child: Icon(
                       Icons.person_rounded,
-                      color: Colors.white,
+                      color: AppColors.white,
                       size: 30.sp,
                     ),
                   ),
@@ -48,13 +55,14 @@ class FolderDrawer extends StatelessWidget {
                     'Reflections',
                     style: AppFontManager.displayMedium.copyWith(
                       fontSize: 24.sp,
+                      color: primaryTextColor,
                     ),
                   ),
                   AppSpacing.h4,
                   Text(
                     FirebaseAuth.instance.currentUser?.email ?? 'User Account',
                     style: AppFontManager.bodySmall.copyWith(
-                      color: AppColors.primaryDark.withValues(alpha: 0.7),
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.primaryGreen.withValues(alpha: 0.7),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -68,13 +76,13 @@ class FolderDrawer extends StatelessWidget {
               child: Text(
                 'Folders',
                 style: AppFontManager.labelMedium.copyWith(
-                  color: AppColors.textSecondary,
+                  color: secondaryTextColor,
                   letterSpacing: 1.2,
                 ),
               ),
             ),
             AppSpacing.h10,
-            Divider(height: 1, color: AppColors.divider),
+            Divider(height: 1, color: dividerColor),
             AppSpacing.h10,
 
             Expanded(
@@ -110,7 +118,7 @@ class FolderDrawer extends StatelessWidget {
               ),
             ),
 
-            Divider(height: 1, color: AppColors.divider),
+            Divider(height: 1, color: dividerColor),
             Padding(
               padding: EdgeInsets.all(16.r),
               child: GestureDetector(
@@ -121,7 +129,7 @@ class FolderDrawer extends StatelessWidget {
                 child: Container(
                   padding: EdgeInsets.symmetric(vertical: 14.h),
                   decoration: BoxDecoration(
-                    color: AppColors.primarySurface,
+                    color: isDark ? AppColors.darkSurfaceVariant : AppColors.accentSurface,
                     borderRadius: BorderRadius.circular(12.r),
                   ),
                   child: Row(
@@ -129,14 +137,14 @@ class FolderDrawer extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.create_new_folder_outlined,
-                        color: AppColors.primaryDark,
+                        color: isDark ? AppColors.accentLight : AppColors.primaryGreen,
                         size: 20.sp,
                       ),
                       AppSpacing.w8,
                       Text(
                         'New Folder',
                         style: AppFontManager.buttonSmall.copyWith(
-                          color: AppColors.primaryDark,
+                          color: isDark ? AppColors.accentLight : AppColors.primaryGreen,
                         ),
                       ),
                     ],
@@ -152,38 +160,43 @@ class FolderDrawer extends StatelessWidget {
 
   void _showCreateFolderDialog(BuildContext context, NoteProvider noteProvider) {
     final tc = TextEditingController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20.r),
         ),
-        backgroundColor: AppColors.surface,
-        title: Text('New Folder', style: AppFontManager.headlineMedium),
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        title: Text('New Folder', style: AppFontManager.headlineMedium.copyWith(
+          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+        )),
         content: TextField(
           controller: tc,
           autofocus: true,
           style: AppFontManager.bodyMedium.copyWith(
-            color: AppColors.textPrimary,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
           ),
           textCapitalization: TextCapitalization.words,
           decoration: InputDecoration(
             hintText: 'Folder name...',
             hintStyle: AppFontManager.bodyMedium.copyWith(
-              color: AppColors.textHint,
+              color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
             ),
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.divider),
+              borderSide: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.lightDivider),
             ),
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.primaryMedium),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: isDark ? AppColors.accentLight : AppColors.primaryGreen),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Cancel', style: AppFontManager.bodyMedium),
+            child: Text('Cancel', style: AppFontManager.bodyMedium.copyWith(
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+            )),
           ),
           TextButton(
             onPressed: () {
@@ -195,7 +208,10 @@ class FolderDrawer extends StatelessWidget {
             },
             child: Text(
               'Create',
-              style: AppFontManager.link.copyWith(fontWeight: FontWeight.w600),
+              style: AppFontManager.link.copyWith(
+                color: isDark ? AppColors.accentLight : AppColors.primaryGreen,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -220,20 +236,25 @@ class DrawerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryMedium : Colors.transparent,
+          color: isSelected 
+              ? (isDark ? AppColors.primaryGreen : AppColors.softGreen.withValues(alpha: 0.3)) 
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12.r),
         ),
         child: Row(
           children: [
             Icon(
               icon,
-              color: isSelected ? AppColors.white : AppColors.primaryDark,
+              color: isSelected 
+                  ? (isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen) 
+                  : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
               size: 20.sp,
             ),
             AppSpacing.w14,
@@ -241,7 +262,9 @@ class DrawerTile extends StatelessWidget {
               child: Text(
                 title,
                 style: AppFontManager.bodyMedium.copyWith(
-                  color: isSelected ? AppColors.white : AppColors.textPrimary,
+                  color: isSelected 
+                      ? (isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen) 
+                      : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),

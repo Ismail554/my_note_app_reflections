@@ -20,13 +20,17 @@ class NoteCard extends StatelessWidget {
         ? Color(note.colorValue) 
         : (isDark ? AppColors.darkSurface : AppColors.lightSurface);
 
-    final titleColor = hasCustomColor 
-        ? AppColors.lightTextPrimary 
-        : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary);
+    final customIsDark = hasCustomColor
+        ? ThemeData.estimateBrightnessForColor(Color(note.colorValue)) == Brightness.dark
+        : isDark;
 
-    final previewColor = hasCustomColor 
-        ? AppColors.lightTextSecondary 
-        : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary);
+    final titleColor = customIsDark 
+        ? AppColors.darkTextPrimary 
+        : AppColors.lightTextPrimary;
+
+    final previewColor = customIsDark 
+        ? AppColors.darkTextSecondary 
+        : AppColors.lightTextSecondary;
 
     return Hero(
       tag: 'note_${note.id}',

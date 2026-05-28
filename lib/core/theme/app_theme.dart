@@ -64,7 +64,7 @@ class AppTheme {
           thickness: 0.5,
           space: 0.5,
         ),
-        switchTheme: _switchTheme(),
+        switchTheme: _switchTheme(Brightness.dark),
         chipTheme: _chipTheme(Brightness.dark),
         bottomSheetTheme: BottomSheetThemeData(
           backgroundColor: AppColors.darkSurface,
@@ -146,7 +146,7 @@ class AppTheme {
           thickness: 0.5,
           space: 0.5,
         ),
-        switchTheme: _switchTheme(),
+        switchTheme: _switchTheme(Brightness.light),
         chipTheme: _chipTheme(Brightness.light),
         bottomSheetTheme: BottomSheetThemeData(
           backgroundColor: AppColors.lightSurface,
@@ -161,9 +161,9 @@ class AppTheme {
           ),
         ),
         snackBarTheme: SnackBarThemeData(
-          backgroundColor: AppColors.lightCard,
+          backgroundColor: AppColors.lightTextPrimary,
           contentTextStyle: AppFontManager.bodyMedium.copyWith(
-            color: AppColors.lightTextPrimary,
+            color: AppColors.lightBackground,
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.r),
@@ -185,12 +185,19 @@ class AppTheme {
     return TextTheme(
       displayLarge: AppFontManager.displayLarge.copyWith(color: primary),
       displayMedium: AppFontManager.displayMedium.copyWith(color: primary),
+      displaySmall: AppFontManager.displayMedium.copyWith(color: primary),
       headlineLarge: AppFontManager.headingLarge.copyWith(color: primary),
       headlineMedium: AppFontManager.headingMedium.copyWith(color: primary),
+      headlineSmall: AppFontManager.headingMedium.copyWith(color: primary),
+      titleLarge: AppFontManager.headingLarge.copyWith(color: primary),
+      titleMedium: AppFontManager.headingMedium.copyWith(color: primary),
+      titleSmall: AppFontManager.bodyLarge.copyWith(color: primary, fontWeight: FontWeight.w500),
       bodyLarge: AppFontManager.bodyLarge.copyWith(color: secondary),
       bodyMedium: AppFontManager.bodyMedium.copyWith(color: secondary),
       bodySmall: AppFontManager.bodySmall.copyWith(color: muted),
+      labelLarge: AppFontManager.labelMedium.copyWith(color: secondary, fontWeight: FontWeight.w600),
       labelMedium: AppFontManager.labelMedium.copyWith(color: muted),
+      labelSmall: AppFontManager.caption.copyWith(color: muted),
     );
   }
 
@@ -314,15 +321,16 @@ class AppTheme {
     );
   }
 
-  static SwitchThemeData _switchTheme() {
+  static SwitchThemeData _switchTheme(Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
     return SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) return AppColors.accent;
-        return AppColors.darkTextMuted;
+        return isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted;
       }),
       trackColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) return AppColors.accentSurface;
-        return AppColors.darkDivider;
+        return isDark ? AppColors.darkDivider : AppColors.lightDivider;
       }),
     );
   }
@@ -332,7 +340,11 @@ class AppTheme {
     return ChipThemeData(
       backgroundColor: isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant,
       selectedColor: AppColors.accentSurface,
-      labelStyle: GoogleFonts.inter(fontSize: 12.sp, fontWeight: FontWeight.w500),
+      labelStyle: GoogleFonts.inter(
+        fontSize: 12.sp,
+        fontWeight: FontWeight.w500,
+        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20.r),
       ),

@@ -205,7 +205,9 @@ class SettingsPage extends StatelessWidget {
               final ok = await settings.changePassword(oldCtrl.text, newCtrl.text);
               if (ctx.mounted) {
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(ctx).showSnackBar(
+              }
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(ok ? 'Password updated' : 'Failed to update')),
                 );
               }

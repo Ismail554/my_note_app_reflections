@@ -168,7 +168,7 @@ class _AddNotePageState extends State<AddNotePage> {
         widget.note != null;
     final noteId = (_currentNoteId != null && _currentNoteId!.isNotEmpty)
         ? _currentNoteId!
-        : '';
+        : (widget.note != null ? widget.note!.id : '');
 
     final note = NoteModel(
       id: noteId,
@@ -201,13 +201,23 @@ class _AddNotePageState extends State<AddNotePage> {
     }
   }
 
-  void _archiveNote(BuildContext context) {
-    if (widget.note == null) return;
-    context.read<NoteProvider>().archiveNote(widget.note!.id, true);
-    Navigator.of(context).pop();
+  Future<void> _archiveNote(BuildContext context) async {
+    final noteId = (_currentNoteId != null && _currentNoteId!.isNotEmpty)
+        ? _currentNoteId!
+        : (widget.note != null ? widget.note!.id : '');
+    if (noteId.isEmpty) return;
+
+    final navigator = Navigator.of(context);
+    await context.read<NoteProvider>().archiveNote(noteId, true);
+    if (mounted) navigator.pop();
   }
 
   void _showVersionHistory() {
+    final noteId = (_currentNoteId != null && _currentNoteId!.isNotEmpty)
+        ? _currentNoteId!
+        : (widget.note != null ? widget.note!.id : '');
+    if (noteId.isEmpty) return;
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
@@ -217,7 +227,7 @@ class _AddNotePageState extends State<AddNotePage> {
       ),
       builder: (context) {
         return VersionHistorySheet(
-          currentNoteId: _currentNoteId!,
+          currentNoteId: noteId,
           onRestore: (title, desc) {
             Navigator.pop(context);
             _restoreVersion(title, desc);
@@ -342,6 +352,86 @@ class _AddNotePageState extends State<AddNotePage> {
                                 size: 20.sp,
                               )
                             : null,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              AppSpacing.h12,
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Beautiful Text Color Picker Bottom Sheet
+  void _showTextColorPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (context) {
+        final textColors = [
+          {'name': 'Red', 'hex': '#EF5350', 'color': const Color(0xFFEF5350)},
+          {'name': 'Green', 'hex': '#66BB6A', 'color': const Color(0xFF66BB6A)},
+          {'name': 'Blue', 'hex': '#42A5F5', 'color': const Color(0xFF42A5F5)},
+          {'name': 'Orange', 'hex': '#FFA726', 'color': const Color(0xFFFFA726)},
+          {'name': 'Purple', 'hex': '#AB47BC', 'color': const Color(0xFFAB47BC)},
+          {'name': 'Pink', 'hex': '#EC407A', 'color': const Color(0xFFEC407A)},
+        ];
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Text Color',
+                style: AppFontManager.headlineMedium.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              AppSpacing.h16,
+              SizedBox(
+                height: 60.h,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: textColors.length,
+                  separatorBuilder: (context, index) => AppSpacing.w16,
+                  itemBuilder: (context, index) {
+                    final item = textColors[index];
+                    final color = item['color'] as Color;
+                    final hex = item['hex'] as String;
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        _insertMarkdown('<color=$hex>', '</color>');
+                      },
+                      child: Container(
+                        width: 50.r,
+                        height: 50.r,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.divider,
+                            width: 1,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'A',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18.sp,
+                            ),
+                          ),
+                        ),
                       ),
                     );
                   },
@@ -488,7 +578,7 @@ class _AddNotePageState extends State<AddNotePage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),
-                      onSelected: (value) {
+                      onSelected: (value) async {
                         if (value == 'pin') {
                           setState(() {
                             _isPinned = !_isPinned;
@@ -496,7 +586,7 @@ class _AddNotePageState extends State<AddNotePage> {
                         } else if (value == 'history') {
                           _showVersionHistory();
                         } else if (value == 'delete') {
-                          _archiveNote(context);
+                          await _archiveNote(context);
                         }
                       },
                       itemBuilder: (context) => [
@@ -523,8 +613,10 @@ class _AddNotePageState extends State<AddNotePage> {
                             ],
                           ),
                         ),
-                        if (_currentNoteId != null &&
-                            _currentNoteId!.isNotEmpty)
+                        if ((_currentNoteId != null &&
+                                _currentNoteId!.isNotEmpty) ||
+                            (widget.note != null &&
+                                widget.note!.id.isNotEmpty))
                           PopupMenuItem<String>(
                             value: 'history',
                             child: Row(
@@ -544,19 +636,21 @@ class _AddNotePageState extends State<AddNotePage> {
                               ],
                             ),
                           ),
-                        if (widget.note != null)
+                        if (widget.note != null ||
+                            (_currentNoteId != null &&
+                                _currentNoteId!.isNotEmpty))
                           PopupMenuItem<String>(
                             value: 'delete',
                             child: Row(
                               children: [
                                 Icon(
-                                  Icons.delete_outline_rounded,
+                                  Icons.archive_outlined,
                                   color: AppColors.error,
                                   size: 18.sp,
                                 ),
                                 AppSpacing.w10,
                                 Text(
-                                  'Delete Note',
+                                  'Archive Note',
                                   style: AppFontManager.bodyMedium.copyWith(
                                     color: AppColors.error,
                                   ),
@@ -833,6 +927,17 @@ class _AddNotePageState extends State<AddNotePage> {
                                     color: bodyColor,
                                     onPressed: () =>
                                         _insertMarkdown('<u>', '</u>'),
+                                  ),
+                                  ToolbarButton(
+                                    icon: Icons.border_color_rounded, // Highlight icon
+                                    color: bodyColor,
+                                    onPressed: () =>
+                                        _insertMarkdown('==', '=='),
+                                  ),
+                                  ToolbarButton(
+                                    icon: Icons.format_color_text_rounded, // Color change icon
+                                    color: bodyColor,
+                                    onPressed: _showTextColorPicker,
                                   ),
                                   ToolbarButton(
                                     icon: Icons.title_rounded,

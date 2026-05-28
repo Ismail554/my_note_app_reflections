@@ -169,6 +169,100 @@ class MarkdownText extends StatelessWidget {
         }
       }
 
+      // Look for Highlight "=="
+      if (index < rawText.length - 1 && rawText.substring(index, index + 2) == '==') {
+        final closingIndex = rawText.indexOf('==', index + 2);
+        if (closingIndex != -1) {
+          final highlightedText = rawText.substring(index + 2, closingIndex);
+          spans.add(TextSpan(
+            text: highlightedText,
+            style: defaultStyle.copyWith(
+              backgroundColor: const Color(0xFFFFF59D), // Soft pastel yellow highlight
+              color: Colors.black87,
+            ),
+          ));
+          index = closingIndex + 2;
+          continue;
+        }
+      }
+
+      // Look for Highlight "<mark>" and "</mark>"
+      if (index < rawText.length - 5 && rawText.substring(index, index + 6) == '<mark>') {
+        final closingIndex = rawText.indexOf('</mark>', index + 6);
+        if (closingIndex != -1) {
+          final highlightedText = rawText.substring(index + 6, closingIndex);
+          spans.add(TextSpan(
+            text: highlightedText,
+            style: defaultStyle.copyWith(
+              backgroundColor: const Color(0xFFFFF59D), // Soft pastel yellow highlight
+              color: Colors.black87,
+            ),
+          ));
+          index = closingIndex + 7;
+          continue;
+        }
+      }
+
+      // Look for Color "<color="
+      if (index < rawText.length - 7 && rawText.substring(index, index + 7) == '<color=') {
+        final closingIndex = rawText.indexOf('>', index + 7);
+        if (closingIndex != -1) {
+          final colorAttr = rawText.substring(index + 7, closingIndex);
+          final endTagIndex = rawText.indexOf('</color>', closingIndex + 1);
+          if (endTagIndex != -1) {
+            final coloredText = rawText.substring(closingIndex + 1, endTagIndex);
+            
+            Color parsedColor = textColor;
+            try {
+              if (colorAttr.startsWith('#')) {
+                final hexStr = colorAttr.replaceAll('#', '');
+                if (hexStr.length == 6) {
+                  parsedColor = Color(int.parse('FF$hexStr', radix: 16));
+                } else if (hexStr.length == 8) {
+                  parsedColor = Color(int.parse(hexStr, radix: 16));
+                }
+              } else {
+                switch (colorAttr.toLowerCase()) {
+                  case 'red':
+                    parsedColor = const Color(0xFFEF5350);
+                    break;
+                  case 'green':
+                    parsedColor = const Color(0xFF66BB6A);
+                    break;
+                  case 'blue':
+                    parsedColor = const Color(0xFF42A5F5);
+                    break;
+                  case 'orange':
+                    parsedColor = const Color(0xFFFFA726);
+                    break;
+                  case 'purple':
+                    parsedColor = const Color(0xFFAB47BC);
+                    break;
+                  case 'yellow':
+                    parsedColor = const Color(0xFFFFEE58);
+                    break;
+                  case 'pink':
+                    parsedColor = const Color(0xFFEC407A);
+                    break;
+                  case 'teal':
+                    parsedColor = const Color(0xFF26A69A);
+                    break;
+                }
+              }
+            } catch (e) {
+              debugPrint('Error parsing color $colorAttr: $e');
+            }
+
+            spans.add(TextSpan(
+              text: coloredText,
+              style: defaultStyle.copyWith(color: parsedColor),
+            ));
+            index = endTagIndex + 8;
+            continue;
+          }
+        }
+      }
+
       // Look for Italic "*"
       if (rawText[index] == '*') {
         final closingIndex = rawText.indexOf('*', index + 1);
