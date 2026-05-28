@@ -7,6 +7,7 @@ import 'package:Reflections/core/theme/app_font_manager.dart';
 import 'package:Reflections/features/todo/data/models/todo_model.dart';
 import 'package:Reflections/features/todo/state/todo_provider.dart';
 import 'package:Reflections/shared/widgets/empty_state.dart';
+import 'package:Reflections/shared/widgets/create_entity_sheets.dart';
 
 class TodoListPage extends StatefulWidget {
   const TodoListPage({super.key});
@@ -16,142 +17,8 @@ class TodoListPage extends StatefulWidget {
 }
 
 class _TodoListPageState extends State<TodoListPage> {
-  final _titleController = TextEditingController();
-  String _selectedPriority = 'Medium';
-  DateTime? _selectedDueDate;
 
-  @override
-  void dispose() {
-    _titleController.dispose();
-    super.dispose();
-  }
 
-  void _showAddTodoSheet(BuildContext context) {
-    _titleController.clear();
-    _selectedPriority = 'Medium';
-    _selectedDueDate = null;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setModalState) {
-            return Padding(
-              padding: EdgeInsets.fromLTRB(
-                24.w, 24.h, 24.w,
-                MediaQuery.of(ctx).viewInsets.bottom + 24.h,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('New Task', style: AppFontManager.headingLarge.copyWith(
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                  )),
-                  SizedBox(height: 16.h),
-                  TextField(
-                    controller: _titleController,
-                    autofocus: true,
-                    decoration: const InputDecoration(hintText: 'What needs to be done?'),
-                    textCapitalization: TextCapitalization.sentences,
-                  ),
-                  SizedBox(height: 16.h),
-                  Text('Priority', style: AppFontManager.labelMedium.copyWith(
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                  )),
-                  SizedBox(height: 8.h),
-                  Row(
-                    children: ['Low', 'Medium', 'High'].map((p) {
-                      final isSelected = _selectedPriority == p;
-                      Color pColor = AppColors.priorityMedium;
-                      if (p == 'Low') pColor = AppColors.priorityLow;
-                      if (p == 'High') pColor = AppColors.priorityHigh;
-
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () => setModalState(() => _selectedPriority = p),
-                          child: Container(
-                            margin: EdgeInsets.symmetric(horizontal: 4.w),
-                            padding: EdgeInsets.symmetric(vertical: 10.h),
-                            decoration: BoxDecoration(
-                              color: isSelected ? pColor.withValues(alpha: 0.15) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10.r),
-                              border: Border.all(
-                                color: isSelected ? pColor : (isDark ? AppColors.darkDivider : AppColors.lightDivider),
-                                width: isSelected ? 1.5 : 0.5,
-                              ),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              p,
-                              style: AppFontManager.labelMedium.copyWith(
-                                color: isSelected ? pColor : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
-                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  SizedBox(height: 16.h),
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_today_outlined, size: 18.sp, color: AppColors.accent),
-                      SizedBox(width: 8.w),
-                      Text(
-                        _selectedDueDate == null
-                            ? 'No due date set'
-                            : 'Due: ${DateFormat('MMM d, y').format(_selectedDueDate!)}',
-                        style: AppFontManager.bodyMedium.copyWith(
-                          color: _selectedDueDate == null
-                              ? (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted)
-                              : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
-                        ),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: ctx,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
-                          );
-                          if (picked != null) {
-                            setModalState(() => _selectedDueDate = picked);
-                          }
-                        },
-                        child: const Text('Set Date'),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 20.h),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (_titleController.text.trim().isEmpty) return;
-                        context.read<TodoProvider>().addTodo(
-                              _titleController.text,
-                              _selectedPriority,
-                              _selectedDueDate,
-                            );
-                        Navigator.pop(ctx);
-                      },
-                      child: const Text('Add Task'),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -167,17 +34,12 @@ class _TodoListPageState extends State<TodoListPage> {
           return EmptyState(
             message: 'Checklist is currently empty.',
             actionLabel: 'Create Task',
-            onAction: () => _showAddTodoSheet(context),
+            onAction: () => CreateEntitySheets.showAddTaskSheet(context),
           );
         }
 
         return Scaffold(
           backgroundColor: Colors.transparent,
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => _showAddTodoSheet(context),
-            tooltip: 'Add Task',
-            child: Icon(Icons.add_rounded, size: 24.sp),
-          ),
           body: ListView(
             physics: const BouncingScrollPhysics(),
             padding: EdgeInsets.symmetric(horizontal: 20.w),

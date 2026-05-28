@@ -12,6 +12,9 @@ import 'package:Reflections/features/profile/presentation/pages/profile_page.dar
 import 'package:Reflections/features/habit/state/habit_provider.dart';
 import 'package:Reflections/features/todo/state/todo_provider.dart';
 import 'package:Reflections/features/reminder/state/reminder_provider.dart';
+import 'package:Reflections/shared/widgets/create_entity_sheets.dart';
+import 'package:Reflections/shared/widgets/bubble_fab.dart';
+import 'package:Reflections/core/theme/app_colors.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -62,19 +65,46 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // FAB (only on Notes tab)
-          if (index == 1)
+          // Bubble FAB (Today, Notes, Tasks tabs)
+          if (index >= 0 && index <= 2)
             Positioned(
-              right: 20.w,
-              bottom: 80.h,
-              child: FloatingActionButton(
-                onPressed: () => AppNavigator.goToAddNote(),
-                tooltip: 'New Note',
-                child: Icon(Icons.add_rounded, size: 24.sp),
+              right: 16.w,
+              bottom: 76.h,
+              child: BubbleFab(
+                items: _buildBubbleItems(context),
               ),
             ),
         ],
       ),
     );
+  }
+
+  List<BubbleMenuItem> _buildBubbleItems(BuildContext context) {
+    return [
+      BubbleMenuItem(
+        icon: Icons.note_add_rounded,
+        label: 'New Note',
+        color: AppColors.streakFire,
+        onTap: () => AppNavigator.goToAddNote(),
+      ),
+      BubbleMenuItem(
+        icon: Icons.add_task_rounded,
+        label: 'New Task',
+        color: AppColors.mediumGreen,
+        onTap: () => CreateEntitySheets.showAddTaskSheet(context),
+      ),
+      BubbleMenuItem(
+        icon: Icons.repeat_rounded,
+        label: 'Track Habit',
+        color: AppColors.priorityHigh,
+        onTap: () => CreateEntitySheets.showAddHabitSheet(context),
+      ),
+      BubbleMenuItem(
+        icon: Icons.alarm_add_rounded,
+        label: 'Set Reminder',
+        color: const Color(0xFF2980B9),
+        onTap: () => CreateEntitySheets.showAddReminderSheet(context),
+      ),
+    ];
   }
 }

@@ -6,6 +6,7 @@ import 'package:Reflections/core/theme/app_font_manager.dart';
 import 'package:Reflections/features/habit/state/habit_provider.dart';
 import 'package:Reflections/features/habit/data/models/habit_model.dart';
 import 'package:Reflections/features/habit/presentation/widgets/heatmap_grid.dart';
+import 'package:Reflections/shared/widgets/create_entity_sheets.dart';
 
 class HabitTrackerPage extends StatefulWidget {
   const HabitTrackerPage({super.key});
@@ -98,7 +99,7 @@ class _HabitTrackerPageState extends State<HabitTrackerPage> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => _showAddHabitSheet(context, isDark),
+                    onTap: () => CreateEntitySheets.showAddHabitSheet(context).then((_) => _loadHeatmap()),
                     child: Container(
                       padding: EdgeInsets.all(8.r),
                       decoration: BoxDecoration(
@@ -157,95 +158,6 @@ class _HabitTrackerPageState extends State<HabitTrackerPage> {
               ),
             ),
         ],
-      ),
-    );
-  }
-
-  void _showAddHabitSheet(BuildContext context, bool isDark) {
-    final nameController = TextEditingController();
-    final descController = TextEditingController();
-    String selectedIcon = '🎯';
-
-    final icons = ['🎯', '💪', '📚', '🧘', '🏃', '💧', '🎨', '🎵', '✍️', '🌅', '💤', '🥗'];
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.fromLTRB(
-            20.w,
-            20.h,
-            20.w,
-            MediaQuery.of(ctx).viewInsets.bottom + 20.h,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'New Habit',
-                style: AppFontManager.headingLarge.copyWith(
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                ),
-              ),
-              SizedBox(height: 16.h),
-              // Icon picker
-              Wrap(
-                spacing: 8.w,
-                runSpacing: 8.h,
-                children: icons.map((icon) {
-                  final isSelected = selectedIcon == icon;
-                  return GestureDetector(
-                    onTap: () => setSheetState(() => selectedIcon = icon),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: EdgeInsets.all(10.r),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.accent.withValues(alpha: 0.15)
-                            : (isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant),
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: isSelected
-                            ? Border.all(color: AppColors.accent, width: 1.5)
-                            : null,
-                      ),
-                      child: Text(icon, style: TextStyle(fontSize: 20.sp)),
-                    ),
-                  );
-                }).toList(),
-              ),
-              SizedBox(height: 16.h),
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(hintText: 'Habit name'),
-                textCapitalization: TextCapitalization.sentences,
-              ),
-              SizedBox(height: 12.h),
-              TextField(
-                controller: descController,
-                decoration: const InputDecoration(hintText: 'Description (optional)'),
-              ),
-              SizedBox(height: 20.h),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (nameController.text.trim().isEmpty) return;
-                    context.read<HabitProvider>().addHabit(
-                          name: nameController.text,
-                          description: descController.text,
-                          icon: selectedIcon,
-                        );
-                    Navigator.pop(ctx);
-                    _loadHeatmap();
-                  },
-                  child: const Text('Create Habit'),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
