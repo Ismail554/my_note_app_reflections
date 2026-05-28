@@ -260,54 +260,138 @@ class _TodayHabitsSection extends StatelessWidget {
           _EmptyCard(message: 'No habits yet. Add one to start tracking!', isDark: isDark)
         else
           SizedBox(
-            height: 80.h,
+            height: 110.h,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.symmetric(horizontal: 20.w),
               itemCount: habits.length,
-              separatorBuilder: (context, index) => SizedBox(width: 10.w),
+              separatorBuilder: (context, index) => SizedBox(width: 12.w),
               itemBuilder: (context, index) {
                 final habit = habits[index];
-                final isDone = habit.isCompletedOn(todayStr);
+                final level = habit.getCompletionLevel(todayStr);
+                final isDone = level == 5;
+                final isInProgress = level > 0 && level < 5;
 
-                return GestureDetector(
-                  onTap: () => habitProvider.toggleHabitDay(habit, todayStr),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    width: 80.w,
-                    padding: EdgeInsets.all(8.r),
-                    decoration: BoxDecoration(
-                      color: isDone
-                          ? AppColors.accent.withValues(alpha: 0.15)
-                          : (isDark ? AppColors.darkCard : AppColors.lightCard),
-                      borderRadius: BorderRadius.circular(16.r),
-                      border: Border.all(
-                        color: isDone
-                            ? AppColors.accent.withValues(alpha: 0.4)
-                            : (isDark ? AppColors.darkDivider : AppColors.lightDivider),
-                        width: isDone ? 1.5 : 0.5,
-                      ),
+                Color cardBg;
+                Color borderColor;
+                Color textColor;
+                double borderW;
+
+                if (isDone) {
+                  cardBg = AppColors.accent.withValues(alpha: 0.12);
+                  borderColor = AppColors.accent.withValues(alpha: 0.5);
+                  textColor = AppColors.accent;
+                  borderW = 1.5;
+                } else if (isInProgress) {
+                  cardBg = AppColors.streakFire.withValues(alpha: 0.08);
+                  borderColor = AppColors.streakFire.withValues(alpha: 0.4);
+                  textColor = AppColors.streakFire;
+                  borderW = 1.2;
+                } else {
+                  cardBg = isDark ? AppColors.darkCard : AppColors.lightCard;
+                  borderColor = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+                  textColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+                  borderW = 0.5;
+                }
+
+                String progressText = 'Not started';
+                if (level == 1 || level == 2) {
+                  progressText = 'In Progress';
+                } else if (level == 3 || level == 4) {
+                  progressText = 'Almost Done';
+                } else if (level == 5) {
+                  progressText = 'Completed! 🎉';
+                }
+
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOutCubic,
+                  width: 144.w,
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(
+                      color: borderColor,
+                      width: borderW,
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(habit.icon, style: TextStyle(fontSize: 24.sp)),
-                        SizedBox(height: 4.h),
-                        Text(
-                          habit.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: AppFontManager.caption.copyWith(
-                            color: isDone
-                                ? AppColors.accent
-                                : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
-                            fontWeight: isDone ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(habit.icon, style: TextStyle(fontSize: 22.sp)),
+                          SizedBox(width: 8.w),
+                          Expanded(
+                            child: Text(
+                              habit.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppFontManager.bodyMedium.copyWith(
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
+                        ],
+                      ),
+                      Text(
+                        progressText,
+                        style: AppFontManager.caption.copyWith(
+                          color: textColor,
+                          fontWeight: level > 0 ? FontWeight.w600 : FontWeight.w400,
                         ),
-                      ],
-                    ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(5, (dotIndex) {
+                          final dotVal = dotIndex + 1;
+                          final isActive = level >= dotVal;
+
+                          Color dotColor;
+                          if (isDone) {
+                            dotColor = AppColors.accent;
+                          } else if (isInProgress) {
+                            dotColor = AppColors.streakFire;
+                          } else {
+                            dotColor = isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted;
+                          }
+
+                          return GestureDetector(
+                            onTap: () {
+                              final targetLvl = level == dotVal ? 0 : dotVal;
+                              habitProvider.setHabitDayProgress(habit, todayStr, targetLvl);
+                            },
+                            child: Container(
+                              width: 16.r,
+                              height: 16.r,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isActive ? dotColor : Colors.transparent,
+                                border: Border.all(
+                                  color: isActive ? dotColor : (isDark ? AppColors.darkInputBorder : AppColors.lightInputBorder),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: isActive
+                                  ? Center(
+                                      child: Container(
+                                        width: 6.r,
+                                        height: 6.r,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
                   ),
                 );
               },

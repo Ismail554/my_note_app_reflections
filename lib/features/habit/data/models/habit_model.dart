@@ -123,10 +123,28 @@ class HabitModel {
     );
   }
 
-  bool isCompletedOn(String dateStr) => completedDays.contains(dateStr);
+  int getCompletionLevel(String dateStr) {
+    for (final day in completedDays) {
+      if (day == dateStr) return 5;
+      if (day.startsWith('$dateStr:')) {
+        final parts = day.split(':');
+        if (parts.length > 1) {
+          return int.tryParse(parts[1]) ?? 0;
+        }
+      }
+    }
+    return 0;
+  }
+
+  bool isCompletedOn(String dateStr) => getCompletionLevel(dateStr) == 5;
+
+  bool isInProgressOn(String dateStr) {
+    final lvl = getCompletionLevel(dateStr);
+    return lvl > 0 && lvl < 5;
+  }
 
   String get todayStr => DateTime.now().toIso8601String().substring(0, 10);
-  bool get isCompletedToday => completedDays.contains(todayStr);
+  bool get isCompletedToday => isCompletedOn(todayStr);
 
   double get weeklyCompletionRate {
     if (targetDaysPerWeek <= 0) return 0;
@@ -135,7 +153,7 @@ class HabitModel {
     int count = 0;
     for (int i = 0; i < 7; i++) {
       final dayStr = weekStart.add(Duration(days: i)).toIso8601String().substring(0, 10);
-      if (completedDays.contains(dayStr)) count++;
+      if (isCompletedOn(dayStr)) count++;
     }
     return count / targetDaysPerWeek;
   }

@@ -7,7 +7,6 @@ import 'package:Reflections/core/providers/note_provider.dart';
 import 'package:Reflections/features/todo/presentation/pages/todo_list_page.dart';
 import 'package:Reflections/features/habit/presentation/pages/habit_tracker_page.dart';
 import 'package:Reflections/features/reminder/presentation/pages/reminder_manager_page.dart';
-import 'package:Reflections/features/analytics/presentation/pages/analytics_page.dart';
 
 class TasksDashboardPage extends StatefulWidget {
   const TasksDashboardPage({super.key});
@@ -25,9 +24,9 @@ class _TasksDashboardPageState extends State<TasksDashboardPage>
     super.initState();
     final noteProvider = Provider.of<NoteProvider>(context, listen: false);
     _tabController = TabController(
-      length: 4,
+      length: 3,
       vsync: this,
-      initialIndex: noteProvider.selectedTasksTabIndex.clamp(0, 3),
+      initialIndex: noteProvider.selectedTasksTabIndex.clamp(0, 2),
     );
 
     _tabController.addListener(() {
@@ -43,7 +42,7 @@ class _TasksDashboardPageState extends State<TasksDashboardPage>
     if (!mounted) return;
     final targetIndex = Provider.of<NoteProvider>(context, listen: false)
         .selectedTasksTabIndex
-        .clamp(0, 3);
+        .clamp(0, 2);
     if (_tabController.index != targetIndex) {
       _tabController.animateTo(targetIndex);
     }
@@ -117,7 +116,6 @@ class _TasksDashboardPageState extends State<TasksDashboardPage>
                 Tab(text: 'To-Do'),
                 Tab(text: 'Habits'),
                 Tab(text: 'Alarms'),
-                Tab(text: 'Activity'),
               ],
             ),
           ),
@@ -132,7 +130,6 @@ class _TasksDashboardPageState extends State<TasksDashboardPage>
                 TodoListPage(),
                 HabitTrackerPage(),
                 ReminderManagerPage(),
-                AnalyticsPage(),
               ],
             ),
           ),

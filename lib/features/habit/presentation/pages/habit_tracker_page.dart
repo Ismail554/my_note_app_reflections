@@ -151,6 +151,10 @@ class _HabitTrackerPageState extends State<HabitTrackerPage> {
                           await provider.toggleHabitDay(habit, todayStr);
                           await _loadHeatmap();
                         },
+                        onLevelChanged: (level) async {
+                          await provider.setHabitDayProgress(habit, todayStr, level);
+                          await _loadHeatmap();
+                        },
                         onDelete: () => provider.deleteHabit(habit.id!),
                       ),
                     );
@@ -224,6 +228,7 @@ class _HabitCard extends StatelessWidget {
   final String todayStr;
   final bool isDark;
   final VoidCallback onToggle;
+  final ValueChanged<int> onLevelChanged;
   final VoidCallback onDelete;
 
   const _HabitCard({
@@ -231,6 +236,7 @@ class _HabitCard extends StatelessWidget {
     required this.todayStr,
     required this.isDark,
     required this.onToggle,
+    required this.onLevelChanged,
     required this.onDelete,
   });
 
@@ -355,6 +361,65 @@ class _HabitCard extends StatelessWidget {
                           ),
                         );
                       }).toList(),
+                    ),
+                    SizedBox(height: 8.h),
+                    // Interactive level segment bar
+                    Row(
+                      children: [
+                        Text(
+                          'Today: ',
+                          style: AppFontManager.caption.copyWith(
+                            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                            fontSize: 10.sp,
+                          ),
+                        ),
+                        SizedBox(width: 4.w),
+                        Row(
+                          children: List.generate(5, (dotIndex) {
+                            final dotVal = dotIndex + 1;
+                            final currentLvl = habit.getCompletionLevel(todayStr);
+                            final isActive = currentLvl >= dotVal;
+                            
+                            Color dotColor;
+                            if (isDone) {
+                              dotColor = AppColors.accent;
+                            } else if (currentLvl > 0) {
+                              dotColor = AppColors.streakFire;
+                            } else {
+                              dotColor = isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted;
+                            }
+
+                            return GestureDetector(
+                              onTap: () => onLevelChanged(currentLvl == dotVal ? 0 : dotVal),
+                              child: Container(
+                                width: 14.r,
+                                height: 14.r,
+                                margin: EdgeInsets.only(right: 6.w),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isActive ? dotColor : Colors.transparent,
+                                  border: Border.all(
+                                    color: isActive ? dotColor : (isDark ? AppColors.darkInputBorder : AppColors.lightInputBorder),
+                                    width: 1.2,
+                                  ),
+                                ),
+                                child: isActive
+                                    ? Center(
+                                        child: Container(
+                                          width: 4.r,
+                                          height: 4.r,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                            );
+                          }),
+                        ),
+                      ],
                     ),
                   ],
                 ),

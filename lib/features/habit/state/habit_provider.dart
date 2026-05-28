@@ -104,6 +104,12 @@ class HabitProvider extends ChangeNotifier {
     await loadHabits();
   }
 
+  Future<void> setHabitDayProgress(HabitModel habit, String dateStr, int stage) async {
+    if (habit.id == null) return;
+    await _repository.setCompletionProgress(habit.id!, dateStr, stage);
+    await loadHabits();
+  }
+
   Future<void> deleteHabit(int id) async {
     await _repository.deleteHabit(id);
     await loadHabits();

@@ -112,6 +112,24 @@ class HabitRepository {
     }
   }
 
+  Future<void> setCompletionProgress(int habitId, String dateStr, int stage) async {
+    final db = await _db.database;
+    // Clear any existing binary or suffixed completions for this date
+    await db.delete(
+      'habit_completions',
+      where: 'habit_id = ? AND (completed_date = ? OR completed_date LIKE ?)',
+      whereArgs: [habitId, dateStr, '$dateStr:%'],
+    );
+
+    if (stage > 0) {
+      final valueToSave = stage == 5 ? dateStr : '$dateStr:$stage';
+      await db.insert('habit_completions', {
+        'habit_id': habitId,
+        'completed_date': valueToSave,
+      });
+    }
+  }
+
   // ─── Bulk (for import) ─────────────────────────────────────────────────
 
   Future<void> insertBulkCompletions(int habitId, List<String> dates) async {

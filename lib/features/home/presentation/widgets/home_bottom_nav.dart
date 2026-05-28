@@ -59,9 +59,16 @@ class HomeBottomNav extends StatelessWidget {
               ),
               _NavItem(
                 index: 3,
+                icon: Icons.bar_chart_rounded,
+                label: 'Activity',
+                isSelected: currentIndex == 3,
+                onTap: onTap,
+              ),
+              _NavItem(
+                index: 4,
                 icon: Icons.settings_rounded,
                 label: 'Settings',
-                isSelected: currentIndex == 3,
+                isSelected: currentIndex == 4,
                 onTap: onTap,
               ),
             ],
