@@ -382,16 +382,31 @@ class _AddNotePageState extends State<AddNotePage> {
         ? Color(_selectedColor)
         : (isDark ? AppColors.darkBackground : AppColors.lightBackground);
 
+    final customIsDark = hasCustomColor
+        ? ThemeData.estimateBrightnessForColor(Color(_selectedColor)) ==
+              Brightness.dark
+        : isDark;
+
     final titleColor = hasCustomColor
-        ? AppColors.lightTextPrimary
+        ? (customIsDark ? AppColors.white : AppColors.lightTextPrimary)
         : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary);
 
     final bodyColor = hasCustomColor
-        ? AppColors.lightTextSecondary
+        ? (customIsDark
+              ? AppColors.white.withValues(alpha: 0.92)
+              : AppColors.lightTextPrimary.withValues(alpha: 0.92))
+        : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary);
+
+    final secondaryTextColor = hasCustomColor
+        ? (customIsDark
+              ? AppColors.white.withValues(alpha: 0.76)
+              : AppColors.lightTextSecondary)
         : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary);
 
     final hintColor = hasCustomColor
-        ? AppColors.lightTextMuted.withValues(alpha: 0.7)
+        ? (customIsDark
+              ? AppColors.white.withValues(alpha: 0.55)
+              : AppColors.lightTextMuted.withValues(alpha: 0.75))
         : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted);
 
     return Hero(
@@ -451,7 +466,7 @@ class _AddNotePageState extends State<AddNotePage> {
                         _isPreviewMode
                             ? Icons.edit_outlined
                             : Icons.visibility_outlined,
-                        color: bodyColor,
+                        color: secondaryTextColor,
                         size: 20.sp,
                       ),
                       tooltip: _isPreviewMode ? 'Edit Note' : 'Preview Note',
@@ -466,7 +481,7 @@ class _AddNotePageState extends State<AddNotePage> {
                     PopupMenuButton<String>(
                       icon: Icon(
                         Icons.more_vert_rounded,
-                        color: bodyColor,
+                        color: secondaryTextColor,
                         size: 20.sp,
                       ),
                       color: isDark ? AppColors.darkSurface : Colors.white,
@@ -493,31 +508,38 @@ class _AddNotePageState extends State<AddNotePage> {
                                 _isPinned
                                     ? Icons.push_pin_rounded
                                     : Icons.push_pin_outlined,
-                                color: _isPinned ? const Color(0xFFC6A052) : bodyColor,
+                                color: _isPinned
+                                    ? const Color(0xFFC6A052)
+                                    : secondaryTextColor,
                                 size: 18.sp,
                               ),
                               AppSpacing.w10,
                               Text(
                                 _isPinned ? 'Unpin Note' : 'Pin Note',
-                                style: AppFontManager.bodyMedium.copyWith(color: bodyColor),
+                                style: AppFontManager.bodyMedium.copyWith(
+                                  color: bodyColor,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        if (_currentNoteId != null && _currentNoteId!.isNotEmpty)
+                        if (_currentNoteId != null &&
+                            _currentNoteId!.isNotEmpty)
                           PopupMenuItem<String>(
                             value: 'history',
                             child: Row(
                               children: [
                                 Icon(
                                   Icons.history_rounded,
-                                  color: bodyColor,
+                                  color: secondaryTextColor,
                                   size: 18.sp,
                                 ),
                                 AppSpacing.w10,
                                 Text(
                                   'Version History',
-                                  style: AppFontManager.bodyMedium.copyWith(color: bodyColor),
+                                  style: AppFontManager.bodyMedium.copyWith(
+                                    color: bodyColor,
+                                  ),
                                 ),
                               ],
                             ),
@@ -535,7 +557,9 @@ class _AddNotePageState extends State<AddNotePage> {
                                 AppSpacing.w10,
                                 Text(
                                   'Delete Note',
-                                  style: AppFontManager.bodyMedium.copyWith(color: AppColors.error),
+                                  style: AppFontManager.bodyMedium.copyWith(
+                                    color: AppColors.error,
+                                  ),
                                 ),
                               ],
                             ),
@@ -606,6 +630,7 @@ class _AddNotePageState extends State<AddNotePage> {
                           : TextField(
                               textInputAction: TextInputAction.next,
                               controller: _titleController,
+                              cursorColor: titleColor,
                               style: AppFontManager.inputTitle.copyWith(
                                 color: titleColor,
                               ),
@@ -654,9 +679,8 @@ class _AddNotePageState extends State<AddNotePage> {
                                           Icon(
                                             Icons.edit_note_rounded,
                                             size: 40.sp,
-                                            color: bodyColor.withValues(
-                                              alpha: 0.25,
-                                            ),
+                                            color: secondaryTextColor
+                                                .withValues(alpha: 0.45),
                                           ),
                                           SizedBox(height: 12.h),
                                           Text(
@@ -664,9 +688,8 @@ class _AddNotePageState extends State<AddNotePage> {
                                             textAlign: TextAlign.center,
                                             style: AppFontManager.bodyMedium
                                                 .copyWith(
-                                                  color: bodyColor.withValues(
-                                                    alpha: 0.45,
-                                                  ),
+                                                  color: secondaryTextColor
+                                                      .withValues(alpha: 0.82),
                                                   height: 1.4,
                                                 ),
                                           ),
@@ -680,6 +703,7 @@ class _AddNotePageState extends State<AddNotePage> {
                             )
                           : TextField(
                               controller: _bodyController,
+                              cursorColor: bodyColor,
                               style: AppFontManager.inputBody.copyWith(
                                 color: bodyColor,
                               ),
@@ -745,7 +769,7 @@ class _AddNotePageState extends State<AddNotePage> {
                                 style: AppFontManager.bodySmall.copyWith(
                                   fontSize: 11.sp,
                                   fontWeight: FontWeight.bold,
-                                  color: bodyColor,
+                                  color: secondaryTextColor,
                                 ),
                               );
                             },
@@ -855,7 +879,9 @@ class _AddNotePageState extends State<AddNotePage> {
                                     fontSize: 10.sp,
                                     color: _isAutoSaving
                                         ? const Color(0xFF8B5CF6)
-                                        : bodyColor.withValues(alpha: 0.7),
+                                        : secondaryTextColor.withValues(
+                                            alpha: 0.85,
+                                          ),
                                   ),
                                 );
                               },
