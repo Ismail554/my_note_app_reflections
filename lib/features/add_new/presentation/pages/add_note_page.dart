@@ -26,7 +26,7 @@ class AddNotePage extends StatefulWidget {
 
 class _AddNotePageState extends State<AddNotePage> {
   final _titleController = TextEditingController();
-  final _bodyController = TextEditingController();
+  late final MarkdownTextEditingController _bodyController;
 
   bool _isSaving = false;
   late String _categoryName;
@@ -35,6 +35,7 @@ class _AddNotePageState extends State<AddNotePage> {
   int _selectedColor = 0;
   bool _isPinned = false;
   bool _isPreviewMode = false;
+  double _bodyFontSize = 16.0;
 
   // Auto-Save and Version History State
   Timer? _autoSaveTimer;
@@ -45,6 +46,21 @@ class _AddNotePageState extends State<AddNotePage> {
 
   @override
   void initState() {
+    _bodyController = MarkdownTextEditingController(
+      getTextColor: () {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final hasCustomColor = _selectedColor != 0;
+        final customIsDark = hasCustomColor
+            ? ThemeData.estimateBrightnessForColor(Color(_selectedColor)) ==
+                  Brightness.dark
+            : isDark;
+        return hasCustomColor
+            ? (customIsDark
+                  ? AppColors.white.withValues(alpha: 0.92)
+                  : AppColors.lightTextPrimary.withValues(alpha: 0.92))
+            : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary);
+      },
+    );
     super.initState();
     if (widget.note != null) {
       _titleController.text = widget.note!.title;
@@ -445,6 +461,152 @@ class _AddNotePageState extends State<AddNotePage> {
     );
   }
 
+  // Beautiful Highlight Color Picker Bottom Sheet
+  void _showHighlightColorPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (context) {
+        final highlightColors = [
+          {'name': 'Yellow', 'hex': 'yellow', 'color': const Color(0xFFFFF9C4)},
+          {'name': 'Green', 'hex': 'green', 'color': const Color(0xFFC8E6C9)},
+          {'name': 'Blue', 'hex': 'blue', 'color': const Color(0xFFBBDEFB)},
+          {'name': 'Pink', 'hex': 'pink', 'color': const Color(0xFFF8BBD0)},
+          {'name': 'Orange', 'hex': 'orange', 'color': const Color(0xFFFFE0B2)},
+          {'name': 'Red', 'hex': 'red', 'color': const Color(0xFFFFCDD2)},
+          {'name': 'Purple', 'hex': 'purple', 'color': const Color(0xFFE1BEE7)},
+          {'name': 'Teal', 'hex': 'teal', 'color': const Color(0xFFB2DFDB)},
+        ];
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Highlight Color',
+                style: AppFontManager.headlineMedium.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              AppSpacing.h16,
+              SizedBox(
+                height: 60.h,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: highlightColors.length,
+                  separatorBuilder: (context, index) => AppSpacing.w16,
+                  itemBuilder: (context, index) {
+                    final item = highlightColors[index];
+                    final color = item['color'] as Color;
+                    final hex = item['hex'] as String;
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        _insertMarkdown('<mark=$hex>', '</mark>');
+                      },
+                      child: Container(
+                        width: 50.r,
+                        height: 50.r,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.divider,
+                            width: 1,
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.border_color_rounded,
+                            color: Colors.black87,
+                            size: 20.sp,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              AppSpacing.h12,
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Beautiful Text Size Picker Bottom Sheet
+  void _showTextSizePicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Text Size Scaling',
+                    style: AppFontManager.headlineMedium.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  AppSpacing.h16,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('A', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                      Expanded(
+                        child: Slider(
+                          value: _bodyFontSize,
+                          min: 12.0,
+                          max: 30.0,
+                          divisions: 9,
+                          activeColor: AppColors.primaryGreen,
+                          inactiveColor: AppColors.divider,
+                          label: '${_bodyFontSize.toInt()} sp',
+                          onChanged: (val) {
+                            setModalState(() {
+                              _bodyFontSize = val;
+                            });
+                            setState(() {});
+                          },
+                        ),
+                      ),
+                      Text('A', style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    ],
+                  ),
+                  AppSpacing.h8,
+                  Center(
+                    child: Text(
+                      'Preview: ${_bodyFontSize.toInt()} sp',
+                      style: AppFontManager.bodyMedium.copyWith(
+                        fontSize: _bodyFontSize.sp,
+                      ),
+                    ),
+                  ),
+                  AppSpacing.h12,
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   // Gemini AI Assistant Bottom Sheet dialog
   void _showAiAssistant() {
     showModalBottomSheet(
@@ -548,6 +710,17 @@ class _AddNotePageState extends State<AddNotePage> {
                           ),
                         ),
                       ),
+                    ),
+
+                    // Text Size Scaling
+                    IconButton(
+                      icon: Icon(
+                        Icons.text_fields_rounded,
+                        color: secondaryTextColor,
+                        size: 20.sp,
+                      ),
+                      tooltip: 'Text Size Scaling',
+                      onPressed: _showTextSizePicker,
                     ),
 
                     // Preview/Edit Toggle Button
@@ -793,6 +966,7 @@ class _AddNotePageState extends State<AddNotePage> {
                                   : MarkdownText(
                                       text: _bodyController.text,
                                       textColor: bodyColor,
+                                      fontSize: _bodyFontSize,
                                     ),
                             )
                           : TextField(
@@ -800,6 +974,7 @@ class _AddNotePageState extends State<AddNotePage> {
                               cursorColor: bodyColor,
                               style: AppFontManager.inputBody.copyWith(
                                 color: bodyColor,
+                                fontSize: _bodyFontSize.sp,
                               ),
                               maxLines: null,
                               keyboardType: TextInputType.multiline,
@@ -808,6 +983,7 @@ class _AddNotePageState extends State<AddNotePage> {
                                 hintText: 'addNoteBodyHint'.tr,
                                 hintStyle: AppFontManager.inputBody.copyWith(
                                   color: hintColor,
+                                  fontSize: _bodyFontSize.sp,
                                 ),
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
@@ -931,8 +1107,7 @@ class _AddNotePageState extends State<AddNotePage> {
                                   ToolbarButton(
                                     icon: Icons.border_color_rounded, // Highlight icon
                                     color: bodyColor,
-                                    onPressed: () =>
-                                        _insertMarkdown('==', '=='),
+                                    onPressed: _showHighlightColorPicker,
                                   ),
                                   ToolbarButton(
                                     icon: Icons.format_color_text_rounded, // Color change icon
@@ -948,6 +1123,11 @@ class _AddNotePageState extends State<AddNotePage> {
                                     icon: Icons.format_list_bulleted_rounded,
                                     color: bodyColor,
                                     onPressed: () => _insertMarkdown('- ', ''),
+                                  ),
+                                  ToolbarButton(
+                                    icon: Icons.format_list_numbered_rounded,
+                                    color: bodyColor,
+                                    onPressed: () => _insertMarkdown('1. ', ''),
                                   ),
                                   ToolbarButton(
                                     icon: Icons.checklist_rounded,
@@ -1000,5 +1180,338 @@ class _AddNotePageState extends State<AddNotePage> {
         ),
       ),
     );
+  }
+}
+
+/// A specialized custom [TextEditingController] that dynamically renders inline
+/// markdown (**bold**, *italic*, `<u>underline</u>`, `==highlight==`, headers, and `<color=...>`)
+/// live in the text editor.
+class MarkdownTextEditingController extends TextEditingController {
+  final ValueGetter<Color> getTextColor;
+
+  MarkdownTextEditingController({
+    super.text,
+    required this.getTextColor,
+  });
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final textStyle = style ?? TextStyle(color: getTextColor());
+    return _parseMarkdownToSpan(text, textStyle);
+  }
+
+  TextSpan _parseMarkdownToSpan(String rawText, TextStyle baseStyle) {
+    final spans = <TextSpan>[];
+    int index = 0;
+
+    // A helper to style helper tags (e.g., **, *, ==, <color...>) so they are completely invisible.
+    TextStyle tagStyle(TextStyle base) => const TextStyle(
+          color: Colors.transparent,
+          fontSize: 0.01,
+          letterSpacing: -2.0,
+          fontWeight: FontWeight.normal,
+          fontStyle: FontStyle.normal,
+          decoration: TextDecoration.none,
+          backgroundColor: Colors.transparent,
+        );
+
+    bool isDigit(String char) => '0123456789'.contains(char);
+
+    while (index < rawText.length) {
+      final isStartOfLine = index == 0 || rawText[index - 1] == '\n';
+      final endOfLine = rawText.indexOf('\n', index);
+      final searchLimit = endOfLine == -1 ? rawText.length : endOfLine;
+
+      // A. Checklist Item: "- [ ] " or "- [x] "
+      if (isStartOfLine &&
+          (rawText.startsWith('- [ ] ', index) ||
+           rawText.startsWith('- [x] ', index) ||
+           rawText.startsWith('- [X] ', index))) {
+        final isChecked = rawText.startsWith('- [x] ', index) || rawText.startsWith('- [X] ', index);
+        spans.add(TextSpan(text: rawText.substring(index, index + 6), style: tagStyle(baseStyle)));
+        spans.add(TextSpan(
+          text: isChecked ? '☑ ' : '☐ ',
+          style: baseStyle.copyWith(
+            color: isChecked ? AppColors.primaryGreen : baseStyle.color?.withValues(alpha: 0.6),
+            fontWeight: FontWeight.bold,
+          ),
+        ));
+        index += 6;
+        continue;
+      }
+
+      // B. Bullet Item: "- " or "* "
+      if (isStartOfLine &&
+          (rawText.startsWith('- ', index) || rawText.startsWith('* ', index))) {
+        spans.add(TextSpan(text: rawText.substring(index, index + 2), style: tagStyle(baseStyle)));
+        spans.add(TextSpan(
+          text: '• ',
+          style: baseStyle.copyWith(
+            fontWeight: FontWeight.bold,
+            color: baseStyle.color?.withValues(alpha: 0.8),
+          ),
+        ));
+        index += 2;
+        continue;
+      }
+
+      // C. Numbered Item: e.g. "1. " at the start of a line
+      if (isStartOfLine) {
+        int searchIdx = index;
+        while (searchIdx < rawText.length && isDigit(rawText[searchIdx])) {
+          searchIdx++;
+        }
+        if (searchIdx > index && rawText.startsWith('. ', searchIdx)) {
+          final numText = rawText.substring(index, searchIdx + 2);
+          spans.add(TextSpan(text: numText, style: tagStyle(baseStyle)));
+          spans.add(TextSpan(
+            text: '${rawText.substring(index, searchIdx)}. ',
+            style: baseStyle.copyWith(
+              fontWeight: FontWeight.bold,
+              color: baseStyle.color ?? getTextColor(),
+            ),
+          ));
+          index = searchIdx + 2;
+          continue;
+        }
+      }
+
+      // D. Bold "**"
+      if (rawText.startsWith('**', index)) {
+        final closingIndex = rawText.indexOf('**', index + 2);
+        if (closingIndex != -1 && closingIndex < searchLimit) {
+          spans.add(TextSpan(text: '**', style: tagStyle(baseStyle)));
+          final boldText = rawText.substring(index + 2, closingIndex);
+          spans.add(TextSpan(
+            text: boldText,
+            style: baseStyle.copyWith(fontWeight: FontWeight.bold),
+          ));
+          spans.add(TextSpan(text: '**', style: tagStyle(baseStyle)));
+          index = closingIndex + 2;
+          continue;
+        }
+      }
+
+      // E. Highlight "==" or "<mark>" / "<mark=color>"
+      if (rawText.startsWith('==', index)) {
+        final closingIndex = rawText.indexOf('==', index + 2);
+        if (closingIndex != -1 && closingIndex < searchLimit) {
+          spans.add(TextSpan(text: '==', style: tagStyle(baseStyle)));
+          final highlightedText = rawText.substring(index + 2, closingIndex);
+          spans.add(TextSpan(
+            text: highlightedText,
+            style: baseStyle.copyWith(
+              backgroundColor: const Color(0xFFFFF9C4),
+              color: Colors.black87,
+            ),
+          ));
+          spans.add(TextSpan(text: '==', style: tagStyle(baseStyle)));
+          index = closingIndex + 2;
+          continue;
+        }
+      }
+
+      if (rawText.startsWith('<mark', index)) {
+        final closingIndex = rawText.indexOf('>', index + 5);
+        if (closingIndex != -1 && closingIndex < searchLimit) {
+          final markAttr = rawText.startsWith('<mark=', index)
+              ? rawText.substring(index + 6, closingIndex)
+              : 'yellow';
+          final endTagIndex = rawText.indexOf('</mark>', closingIndex + 1);
+          if (endTagIndex != -1 && endTagIndex < searchLimit) {
+            final highlightedText = rawText.substring(closingIndex + 1, endTagIndex);
+            
+            Color parsedBg = const Color(0xFFFFF9C4); // default yellow
+            try {
+              if (markAttr.startsWith('#')) {
+                final hexStr = markAttr.replaceAll('#', '');
+                if (hexStr.length == 6) {
+                  parsedBg = Color(int.parse('FF$hexStr', radix: 16));
+                } else if (hexStr.length == 8) {
+                  parsedBg = Color(int.parse(hexStr, radix: 16));
+                }
+              } else {
+                switch (markAttr.toLowerCase()) {
+                  case 'yellow':
+                    parsedBg = const Color(0xFFFFF9C4);
+                    break;
+                  case 'green':
+                    parsedBg = const Color(0xFFC8E6C9);
+                    break;
+                  case 'blue':
+                    parsedBg = const Color(0xFFBBDEFB);
+                    break;
+                  case 'pink':
+                    parsedBg = const Color(0xFFF8BBD0);
+                    break;
+                  case 'orange':
+                    parsedBg = const Color(0xFFFFE0B2);
+                    break;
+                  case 'red':
+                    parsedBg = const Color(0xFFFFCDD2);
+                    break;
+                  case 'purple':
+                    parsedBg = const Color(0xFFE1BEE7);
+                    break;
+                  case 'teal':
+                    parsedBg = const Color(0xFFB2DFDB);
+                    break;
+                }
+              }
+            } catch (_) {}
+
+            spans.add(TextSpan(text: '<mark=$markAttr>', style: tagStyle(baseStyle)));
+            spans.add(TextSpan(
+              text: highlightedText,
+              style: baseStyle.copyWith(
+                backgroundColor: parsedBg,
+                color: Colors.black87,
+              ),
+            ));
+            spans.add(TextSpan(text: '</mark>', style: tagStyle(baseStyle)));
+            index = endTagIndex + 7;
+            continue;
+          }
+        }
+      }
+
+      // F. Underline "<u>"
+      if (rawText.startsWith('<u>', index)) {
+        final closingIndex = rawText.indexOf('</u>', index + 3);
+        if (closingIndex != -1 && closingIndex < searchLimit) {
+          spans.add(TextSpan(text: '<u>', style: tagStyle(baseStyle)));
+          final underlinedText = rawText.substring(index + 3, closingIndex);
+          spans.add(TextSpan(
+            text: underlinedText,
+            style: baseStyle.copyWith(decoration: TextDecoration.underline),
+          ));
+          spans.add(TextSpan(text: '</u>', style: tagStyle(baseStyle)));
+          index = closingIndex + 4;
+          continue;
+        }
+      }
+
+      // G. Color "<color="
+      if (rawText.startsWith('<color=', index)) {
+        final closingIndex = rawText.indexOf('>', index + 7);
+        if (closingIndex != -1 && closingIndex < searchLimit) {
+          final colorAttr = rawText.substring(index + 7, closingIndex);
+          final endTagIndex = rawText.indexOf('</color>', closingIndex + 1);
+          if (endTagIndex != -1 && endTagIndex < searchLimit) {
+            final coloredText = rawText.substring(closingIndex + 1, endTagIndex);
+            
+            Color parsedColor = baseStyle.color ?? getTextColor();
+            try {
+              if (colorAttr.startsWith('#')) {
+                final hexStr = colorAttr.replaceAll('#', '');
+                if (hexStr.length == 6) {
+                  parsedColor = Color(int.parse('FF$hexStr', radix: 16));
+                } else if (hexStr.length == 8) {
+                  parsedColor = Color(int.parse(hexStr, radix: 16));
+                }
+              } else {
+                switch (colorAttr.toLowerCase()) {
+                  case 'red':
+                    parsedColor = const Color(0xFFEF5350);
+                    break;
+                  case 'green':
+                    parsedColor = const Color(0xFF66BB6A);
+                    break;
+                  case 'blue':
+                    parsedColor = const Color(0xFF42A5F5);
+                    break;
+                  case 'orange':
+                    parsedColor = const Color(0xFFFFA726);
+                    break;
+                  case 'purple':
+                    parsedColor = const Color(0xFFAB47BC);
+                    break;
+                  case 'yellow':
+                    parsedColor = const Color(0xFFFFEE58);
+                    break;
+                  case 'pink':
+                    parsedColor = const Color(0xFFEC407A);
+                    break;
+                  case 'teal':
+                    parsedColor = const Color(0xFF26A69A);
+                    break;
+                }
+              }
+            } catch (_) {}
+
+            spans.add(TextSpan(text: '<color=$colorAttr>', style: tagStyle(baseStyle)));
+            spans.add(TextSpan(
+              text: coloredText,
+              style: baseStyle.copyWith(color: parsedColor),
+            ));
+            spans.add(TextSpan(text: '</color>', style: tagStyle(baseStyle)));
+            index = endTagIndex + 8;
+            continue;
+          }
+        }
+      }
+
+      // H. Italic "*"
+      if (rawText.startsWith('*', index)) {
+        final closingIndex = rawText.indexOf('*', index + 1);
+        if (closingIndex != -1 && closingIndex < searchLimit) {
+          spans.add(TextSpan(text: '*', style: tagStyle(baseStyle)));
+          final italicText = rawText.substring(index + 1, closingIndex);
+          spans.add(TextSpan(
+            text: italicText,
+            style: baseStyle.copyWith(fontStyle: FontStyle.italic),
+          ));
+          spans.add(TextSpan(text: '*', style: tagStyle(baseStyle)));
+          index = closingIndex + 1;
+          continue;
+        }
+      }
+
+      // I. Header "# " or "## "
+      if (isStartOfLine && rawText.startsWith('# ', index)) {
+        spans.add(TextSpan(text: '# ', style: tagStyle(baseStyle)));
+        final endOfLine = rawText.indexOf('\n', index + 2);
+        final lineLen = endOfLine == -1 ? rawText.length - (index + 2) : endOfLine - (index + 2);
+        final headerText = rawText.substring(index + 2, index + 2 + lineLen);
+        spans.add(TextSpan(
+          text: headerText,
+          style: baseStyle.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: baseStyle.fontSize != null ? baseStyle.fontSize! * 1.35 : 20.sp,
+          ),
+        ));
+        index = index + 2 + lineLen;
+        continue;
+      }
+
+      if (isStartOfLine && rawText.startsWith('## ', index)) {
+        spans.add(TextSpan(text: '## ', style: tagStyle(baseStyle)));
+        final endOfLine = rawText.indexOf('\n', index + 3);
+        final lineLen = endOfLine == -1 ? rawText.length - (index + 3) : endOfLine - (index + 3);
+        final headerText = rawText.substring(index + 3, index + 3 + lineLen);
+        spans.add(TextSpan(
+          text: headerText,
+          style: baseStyle.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: baseStyle.fontSize != null ? baseStyle.fontSize! * 1.15 : 17.sp,
+          ),
+        ));
+        index = index + 3 + lineLen;
+        continue;
+      }
+
+      // Plain char
+      spans.add(TextSpan(
+        text: rawText[index],
+        style: baseStyle,
+      ));
+      index++;
+    }
+
+    return TextSpan(children: spans);
   }
 }

@@ -15,6 +15,7 @@ import 'package:Reflections/features/reminder/state/reminder_provider.dart';
 import 'package:Reflections/shared/widgets/create_entity_sheets.dart';
 import 'package:Reflections/shared/widgets/bubble_fab.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
+import 'package:Reflections/features/analytics/presentation/pages/analytics_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -41,11 +42,12 @@ class _HomePageState extends State<HomePage> {
     final noteProvider = context.watch<NoteProvider>();
     final index = noteProvider.selectedNavIndex;
 
-    // 4 tab bodies — IndexedStack keeps state alive
+    // 5 tab bodies — IndexedStack keeps state alive
     final List<Widget> tabs = [
       const TodayDashboard(),
       NotesTab(provider: noteProvider),
       const TasksDashboardPage(),
+      const AnalyticsPage(),
       const SettingsPage(),
     ];
 

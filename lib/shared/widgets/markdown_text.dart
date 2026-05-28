@@ -8,11 +8,13 @@ import 'package:Reflections/core/theme/app_font_manager.dart';
 class MarkdownText extends StatelessWidget {
   final String text;
   final Color textColor;
+  final double? fontSize;
 
   const MarkdownText({
     super.key,
     required this.text,
     required this.textColor,
+    this.fontSize,
   });
 
   @override
@@ -35,7 +37,7 @@ class MarkdownText extends StatelessWidget {
             child: Text(
               line.substring(2),
               style: AppFontManager.headingLarge.copyWith(
-                fontSize: 22.sp,
+                fontSize: fontSize != null ? fontSize! * 1.35 : 22.sp,
                 fontWeight: FontWeight.bold,
                 color: textColor,
               ),
@@ -53,7 +55,7 @@ class MarkdownText extends StatelessWidget {
             child: Text(
               line.substring(3),
               style: AppFontManager.headingMedium.copyWith(
-                fontSize: 18.sp,
+                fontSize: fontSize != null ? fontSize! * 1.15 : 18.sp,
                 fontWeight: FontWeight.bold,
                 color: textColor,
               ),
@@ -151,6 +153,7 @@ class MarkdownText extends StatelessWidget {
     final defaultStyle = AppFontManager.bodyMedium.copyWith(
       color: textColor,
       height: 1.5,
+      fontSize: fontSize,
       decoration: strikethrough ? TextDecoration.lineThrough : TextDecoration.none,
     );
 
@@ -170,14 +173,14 @@ class MarkdownText extends StatelessWidget {
       }
 
       // Look for Highlight "=="
-      if (index < rawText.length - 1 && rawText.substring(index, index + 2) == '==') {
+      if (rawText.startsWith('==', index)) {
         final closingIndex = rawText.indexOf('==', index + 2);
         if (closingIndex != -1) {
           final highlightedText = rawText.substring(index + 2, closingIndex);
           spans.add(TextSpan(
             text: highlightedText,
             style: defaultStyle.copyWith(
-              backgroundColor: const Color(0xFFFFF59D), // Soft pastel yellow highlight
+              backgroundColor: const Color(0xFFFFF9C4), // Soft pastel yellow highlight
               color: Colors.black87,
             ),
           ));
@@ -186,20 +189,66 @@ class MarkdownText extends StatelessWidget {
         }
       }
 
-      // Look for Highlight "<mark>" and "</mark>"
-      if (index < rawText.length - 5 && rawText.substring(index, index + 6) == '<mark>') {
-        final closingIndex = rawText.indexOf('</mark>', index + 6);
+      // Look for Highlight "<mark>" or "<mark=color>"
+      if (rawText.startsWith('<mark', index)) {
+        final closingIndex = rawText.indexOf('>', index + 5);
         if (closingIndex != -1) {
-          final highlightedText = rawText.substring(index + 6, closingIndex);
-          spans.add(TextSpan(
-            text: highlightedText,
-            style: defaultStyle.copyWith(
-              backgroundColor: const Color(0xFFFFF59D), // Soft pastel yellow highlight
-              color: Colors.black87,
-            ),
-          ));
-          index = closingIndex + 7;
-          continue;
+          final markAttr = rawText.startsWith('<mark=', index)
+              ? rawText.substring(index + 6, closingIndex)
+              : 'yellow';
+          final endTagIndex = rawText.indexOf('</mark>', closingIndex + 1);
+          if (endTagIndex != -1) {
+            final highlightedText = rawText.substring(closingIndex + 1, endTagIndex);
+            
+            Color parsedBg = const Color(0xFFFFF9C4); // default yellow
+            try {
+              if (markAttr.startsWith('#')) {
+                final hexStr = markAttr.replaceAll('#', '');
+                if (hexStr.length == 6) {
+                  parsedBg = Color(int.parse('FF$hexStr', radix: 16));
+                } else if (hexStr.length == 8) {
+                  parsedBg = Color(int.parse(hexStr, radix: 16));
+                }
+              } else {
+                switch (markAttr.toLowerCase()) {
+                  case 'yellow':
+                    parsedBg = const Color(0xFFFFF9C4);
+                    break;
+                  case 'green':
+                    parsedBg = const Color(0xFFC8E6C9);
+                    break;
+                  case 'blue':
+                    parsedBg = const Color(0xFFBBDEFB);
+                    break;
+                  case 'pink':
+                    parsedBg = const Color(0xFFF8BBD0);
+                    break;
+                  case 'orange':
+                    parsedBg = const Color(0xFFFFE0B2);
+                    break;
+                  case 'red':
+                    parsedBg = const Color(0xFFFFCDD2);
+                    break;
+                  case 'purple':
+                    parsedBg = const Color(0xFFE1BEE7);
+                    break;
+                  case 'teal':
+                    parsedBg = const Color(0xFFB2DFDB);
+                    break;
+                }
+              }
+            } catch (_) {}
+
+            spans.add(TextSpan(
+              text: highlightedText,
+              style: defaultStyle.copyWith(
+                backgroundColor: parsedBg,
+                color: Colors.black87,
+              ),
+            ));
+            index = endTagIndex + 7;
+            continue;
+          }
         }
       }
 
