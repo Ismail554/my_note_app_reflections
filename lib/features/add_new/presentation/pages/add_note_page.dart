@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -10,11 +9,19 @@ import 'package:Reflections/core/widgets/note_save_button.dart';
 import 'package:Reflections/core/providers/note_provider.dart';
 import 'package:Reflections/shared/models/note_model.dart';
 import 'package:Reflections/core/localization/app_translations.dart';
+import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:Reflections/shared/widgets/markdown_text.dart';
+
+// Modular Presentation Widgets & Controllers
 import 'package:Reflections/features/add_new/presentation/widgets/meta_chip.dart';
-import 'package:Reflections/features/add_new/presentation/widgets/toolbar_button.dart';
 import 'package:Reflections/features/add_new/presentation/widgets/ai_assistant_panel.dart';
 import 'package:Reflections/features/add_new/presentation/widgets/version_history_sheet.dart';
+import 'package:Reflections/features/add_new/presentation/widgets/markdown_text_editing_controller.dart';
+import 'package:Reflections/features/add_new/presentation/widgets/note_color_picker_sheet.dart';
+import 'package:Reflections/features/add_new/presentation/widgets/note_text_color_picker_sheet.dart';
+import 'package:Reflections/features/add_new/presentation/widgets/note_highlight_color_picker_sheet.dart';
+import 'package:Reflections/features/add_new/presentation/widgets/note_text_size_picker_sheet.dart';
+import 'package:Reflections/features/add_new/presentation/widgets/note_editor_toolbar.dart';
 
 class AddNotePage extends StatefulWidget {
   final NoteModel? note;
@@ -27,22 +34,41 @@ class AddNotePage extends StatefulWidget {
 class _AddNotePageState extends State<AddNotePage> {
   final _titleController = TextEditingController();
   late final MarkdownTextEditingController _bodyController;
+  final _bodyFocusNode = FocusNode();
 
   bool _isSaving = false;
   late String _categoryName;
 
-  // Custom Customizations
   int _selectedColor = 0;
   bool _isPinned = false;
   bool _isPreviewMode = false;
   double _bodyFontSize = 16.0;
 
-  // Auto-Save and Version History State
   Timer? _autoSaveTimer;
   String? _currentNoteId;
   String _lastSavedTitle = '';
   String _lastSavedBody = '';
   bool _isAutoSaving = false;
+  bool _canPop = false;
+
+  bool get _isDirty {
+    final title = _titleController.text.trim();
+    final body = _bodyController.text;
+    final originalNote = widget.note;
+
+    if (originalNote == null) {
+      return title.isNotEmpty ||
+          body.isNotEmpty ||
+          _selectedColor != 0 ||
+          _isPinned;
+    }
+
+    return title != originalNote.title ||
+        body != originalNote.description ||
+        _selectedColor != originalNote.colorValue ||
+        _isPinned != originalNote.isPinned ||
+        _categoryName != originalNote.category;
+  }
 
   @override
   void initState() {
@@ -68,7 +94,7 @@ class _AddNotePageState extends State<AddNotePage> {
       _categoryName = widget.note!.category;
       _selectedColor = widget.note!.colorValue;
       _isPinned = widget.note!.isPinned;
-      _isPreviewMode = true; // Open existing notes in Preview Mode by default!
+      _isPreviewMode = true;
     } else {
       _selectedColor = 0;
       _isPinned = false;
@@ -77,7 +103,6 @@ class _AddNotePageState extends State<AddNotePage> {
           ? 'Reflections'
           : noteProvider.selectedFolder;
     }
-
     _currentNoteId = widget.note?.id;
     _lastSavedTitle = _titleController.text;
     _lastSavedBody = _bodyController.text;
@@ -95,21 +120,17 @@ class _AddNotePageState extends State<AddNotePage> {
     if (title == _lastSavedTitle && body == _lastSavedBody) return;
 
     _autoSaveTimer?.cancel();
-    _autoSaveTimer = Timer(const Duration(seconds: 2), () {
-      _autoSave();
-    });
+    _autoSaveTimer = Timer(const Duration(seconds: 2), () => _autoSave());
   }
 
   Future<void> _autoSave() async {
     final title = _titleController.text.trim();
     final body = _bodyController.text;
-    if (title.isEmpty) return;
+    if (title.isEmpty || _isSaving) return;
     if (title == _lastSavedTitle && body == _lastSavedBody) return;
 
     if (!mounted) return;
-    setState(() {
-      _isAutoSaving = true;
-    });
+    setState(() => _isAutoSaving = true);
 
     final isEditing = _currentNoteId != null && _currentNoteId!.isNotEmpty;
     final note = NoteModel(
@@ -134,8 +155,7 @@ class _AddNotePageState extends State<AddNotePage> {
       if (isEditing) {
         await noteProvider.updateNote(note);
       } else {
-        final newId = await noteProvider.addNote(note);
-        _currentNoteId = newId;
+        _currentNoteId = await noteProvider.addNote(note);
       }
       _lastSavedTitle = title;
       _lastSavedBody = body;
@@ -143,11 +163,7 @@ class _AddNotePageState extends State<AddNotePage> {
       debugPrint('Auto-save error: $e');
     }
 
-    if (mounted) {
-      setState(() {
-        _isAutoSaving = false;
-      });
-    }
+    if (mounted) setState(() => _isAutoSaving = false);
   }
 
   @override
@@ -155,12 +171,17 @@ class _AddNotePageState extends State<AddNotePage> {
     _autoSaveTimer?.cancel();
     _titleController.dispose();
     _bodyController.dispose();
+    _bodyFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _save(BuildContext context) async {
+    // Dismiss keyboard first to restore full Scaffold height
+    FocusManager.instance.primaryFocus?.unfocus();
+
     final title = _titleController.text.trim();
     if (title.isEmpty) {
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('errorEmpty'.tr),
@@ -175,9 +196,8 @@ class _AddNotePageState extends State<AddNotePage> {
       return;
     }
 
-    setState(() {
-      _isSaving = true;
-    });
+    _autoSaveTimer?.cancel();
+    setState(() => _isSaving = true);
 
     final isEditing =
         (_currentNoteId != null && _currentNoteId!.isNotEmpty) ||
@@ -203,16 +223,18 @@ class _AddNotePageState extends State<AddNotePage> {
 
     final noteProvider = context.read<NoteProvider>();
     final navigator = Navigator.of(context);
-    if (isEditing && noteId.isNotEmpty) {
-      await noteProvider.updateNote(note);
-    } else {
-      await noteProvider.addNote(note);
+    try {
+      if (isEditing && noteId.isNotEmpty) {
+        await noteProvider.updateNote(note);
+      } else {
+        await noteProvider.addNote(note);
+      }
+    } catch (e) {
+      debugPrint('Save error: $e');
     }
 
     if (mounted) {
-      setState(() {
-        _isSaving = false;
-      });
+      setState(() => _isSaving = false);
       navigator.pop();
     }
   }
@@ -234,71 +256,123 @@ class _AddNotePageState extends State<AddNotePage> {
         : (widget.note != null ? widget.note!.id : '');
     if (noteId.isEmpty) return;
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? AppColors.darkSurface
+          : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
-      builder: (context) {
-        return VersionHistorySheet(
-          currentNoteId: noteId,
-          onRestore: (title, desc) {
-            Navigator.pop(context);
-            _restoreVersion(title, desc);
-          },
-        );
-      },
-    );
-  }
-
-  void _restoreVersion(String title, String desc) {
-    setState(() {
-      _titleController.text = title;
-      _bodyController.text = desc;
-      _isPreviewMode = false;
-    });
-    _autoSave();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Previous version restored successfully!'),
-        backgroundColor: AppColors.primaryGreen,
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.all(16.r),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.r),
-        ),
+      builder: (context) => VersionHistorySheet(
+        currentNoteId: noteId,
+        onRestore: (title, desc) {
+          Navigator.pop(context);
+          FocusManager.instance.primaryFocus?.unfocus();
+          setState(() {
+            _titleController.text = title;
+            _bodyController.text = desc;
+            _isPreviewMode = false;
+          });
+          _autoSave();
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('restoreSuccess'.tr),
+              backgroundColor: AppColors.primaryGreen,
+              behavior: SnackBarBehavior.floating,
+              margin: EdgeInsets.all(16.r),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  // Markdown Formatting Helper
-  void _insertMarkdown(String prefix, String suffix) {
+  void _insertMarkdown(
+    String prefix,
+    String suffix, {
+    TextSelection? forceSelection,
+  }) {
     final text = _bodyController.text;
-    final selection = _bodyController.selection;
+    final selection = forceSelection ?? _bodyController.selection;
+    int start = selection.start < 0 ? text.length : selection.start;
+    int end = selection.end < 0 ? text.length : selection.end;
 
-    int start = selection.start;
-    int end = selection.end;
+    // Line-level prefixes: must go at the start of the current line
+    final isLinePrefix =
+        suffix.isEmpty &&
+        (prefix == '# ' ||
+            prefix == '## ' ||
+            prefix == '- ' ||
+            prefix == '* ' ||
+            prefix.startsWith('- [') ||
+            RegExp(r'^\d+\.\s$').hasMatch(prefix));
 
-    if (start < 0 || end < 0) {
-      start = text.length;
-      end = text.length;
+    if (isLinePrefix) {
+      // Find start of current line
+      int lineStart = text.lastIndexOf('\n', start - 1);
+      lineStart = lineStart == -1 ? 0 : lineStart + 1;
+
+      final lineText = text.substring(lineStart);
+
+      // Define a regex that matches any known line prefix
+      final prefixRegex = RegExp(
+        r'^(##\s|#\s|-\s|\*\s|-\s\[\s\]\s|-\s\[x\]\s|-\s\[X\]\s|\d+\.\s)',
+      );
+      final match = prefixRegex.firstMatch(lineText);
+
+      if (match != null) {
+        final existingPrefix = match.group(0)!;
+        if (existingPrefix == prefix) {
+          // Toggle off: remove the prefix
+          _bodyController.text = text.replaceRange(
+            lineStart,
+            lineStart + existingPrefix.length,
+            '',
+          );
+          _bodyController.selection = TextSelection.collapsed(
+            offset: (start - existingPrefix.length).clamp(
+              0,
+              _bodyController.text.length,
+            ),
+          );
+        } else {
+          // Replace existing prefix with new prefix
+          _bodyController.text = text.replaceRange(
+            lineStart,
+            lineStart + existingPrefix.length,
+            prefix,
+          );
+          final diff = prefix.length - existingPrefix.length;
+          _bodyController.selection = TextSelection.collapsed(
+            offset: (start + diff).clamp(0, _bodyController.text.length),
+          );
+        }
+      } else {
+        // No prefix exists, insert new prefix
+        _bodyController.text = text.replaceRange(lineStart, lineStart, prefix);
+        _bodyController.selection = TextSelection.collapsed(
+          offset: start + prefix.length,
+        );
+      }
+    } else {
+      // Wrap-style (bold, italic, underline, color, highlight, etc.)
+      final selectedText = text.substring(start, end);
+      final replacement = '$prefix$selectedText$suffix';
+      _bodyController.text = text.replaceRange(start, end, replacement);
+      _bodyController.selection = TextSelection.collapsed(
+        offset: start + prefix.length + selectedText.length,
+      );
     }
 
-    final selectedText = text.substring(start, end);
-    final replacement = '$prefix$selectedText$suffix';
-
-    final newText = text.replaceRange(start, end, replacement);
-    _bodyController.text = newText;
-
-    _bodyController.selection = TextSelection.collapsed(
-      offset: start + prefix.length + selectedText.length,
-    );
     setState(() {});
+    _bodyFocusNode.requestFocus();
   }
 
-  // Curated Pastel Colors Picker bottom sheet
   void _showColorPicker() {
     showModalBottomSheet(
       context: context,
@@ -306,241 +380,52 @@ class _AddNotePageState extends State<AddNotePage> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
-      builder: (context) {
-        final colors = [
-          {'name': 'Default', 'value': 0},
-          {'name': 'Cream', 'value': 0xFFFDF6EC},
-          {'name': 'Sage', 'value': 0xFFF0F4F1},
-          {'name': 'Mist', 'value': 0xFFEDF4F9},
-          {'name': 'Lavender', 'value': 0xFFF6F0F8},
-          {'name': 'Blush', 'value': 0xFFFAF0F0},
-        ];
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'noteColor'.tr,
-                style: AppFontManager.headlineMedium.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              AppSpacing.h16,
-              SizedBox(
-                height: 60.h,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: colors.length,
-                  separatorBuilder: (context, index) => AppSpacing.w16,
-                  itemBuilder: (context, index) {
-                    final colorItem = colors[index];
-                    final value = colorItem['value'] as int;
-                    final isSelected = _selectedColor == value;
-
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedColor = value;
-                        });
-                        Navigator.pop(context);
-                      },
-                      child: Container(
-                        width: 50.r,
-                        height: 50.r,
-                        decoration: BoxDecoration(
-                          color: value == 0
-                              ? AppColors.cardBackground
-                              : Color(value),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.primaryMedium
-                                : AppColors.divider,
-                            width: isSelected ? 2.5 : 1,
-                          ),
-                        ),
-                        child: isSelected
-                            ? Icon(
-                                Icons.check,
-                                color: AppColors.primaryMedium,
-                                size: 20.sp,
-                              )
-                            : null,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              AppSpacing.h12,
-            ],
-          ),
-        );
-      },
-    );
+      builder: (context) => NoteColorPickerSheet(
+        selectedColor: _selectedColor,
+        onColorSelected: (val) {
+          setState(() => _selectedColor = val);
+          _autoSave();
+        },
+      ),
+    ).whenComplete(() => _bodyFocusNode.requestFocus());
   }
 
-  // Beautiful Text Color Picker Bottom Sheet
   void _showTextColorPicker() {
+    final selection = _bodyController.selection;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
-      builder: (context) {
-        final textColors = [
-          {'name': 'Red', 'hex': '#EF5350', 'color': const Color(0xFFEF5350)},
-          {'name': 'Green', 'hex': '#66BB6A', 'color': const Color(0xFF66BB6A)},
-          {'name': 'Blue', 'hex': '#42A5F5', 'color': const Color(0xFF42A5F5)},
-          {'name': 'Orange', 'hex': '#FFA726', 'color': const Color(0xFFFFA726)},
-          {'name': 'Purple', 'hex': '#AB47BC', 'color': const Color(0xFFAB47BC)},
-          {'name': 'Pink', 'hex': '#EC407A', 'color': const Color(0xFFEC407A)},
-        ];
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Text Color',
-                style: AppFontManager.headlineMedium.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              AppSpacing.h16,
-              SizedBox(
-                height: 60.h,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: textColors.length,
-                  separatorBuilder: (context, index) => AppSpacing.w16,
-                  itemBuilder: (context, index) {
-                    final item = textColors[index];
-                    final color = item['color'] as Color;
-                    final hex = item['hex'] as String;
-
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                        _insertMarkdown('<color=$hex>', '</color>');
-                      },
-                      child: Container(
-                        width: 50.r,
-                        height: 50.r,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.divider,
-                            width: 1,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'A',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18.sp,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              AppSpacing.h12,
-            ],
-          ),
-        );
-      },
-    );
+      builder: (context) => NoteTextColorPickerSheet(
+        onColorSelected: (hex) => _insertMarkdown(
+          '<color=$hex>',
+          '</color>',
+          forceSelection: selection,
+        ),
+      ),
+    ).whenComplete(() => _bodyFocusNode.requestFocus());
   }
 
-  // Beautiful Highlight Color Picker Bottom Sheet
   void _showHighlightColorPicker() {
+    final selection = _bodyController.selection;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
-      builder: (context) {
-        final highlightColors = [
-          {'name': 'Yellow', 'hex': 'yellow', 'color': const Color(0xFFFFF9C4)},
-          {'name': 'Green', 'hex': 'green', 'color': const Color(0xFFC8E6C9)},
-          {'name': 'Blue', 'hex': 'blue', 'color': const Color(0xFFBBDEFB)},
-          {'name': 'Pink', 'hex': 'pink', 'color': const Color(0xFFF8BBD0)},
-          {'name': 'Orange', 'hex': 'orange', 'color': const Color(0xFFFFE0B2)},
-          {'name': 'Red', 'hex': 'red', 'color': const Color(0xFFFFCDD2)},
-          {'name': 'Purple', 'hex': 'purple', 'color': const Color(0xFFE1BEE7)},
-          {'name': 'Teal', 'hex': 'teal', 'color': const Color(0xFFB2DFDB)},
-        ];
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Highlight Color',
-                style: AppFontManager.headlineMedium.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              AppSpacing.h16,
-              SizedBox(
-                height: 60.h,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: highlightColors.length,
-                  separatorBuilder: (context, index) => AppSpacing.w16,
-                  itemBuilder: (context, index) {
-                    final item = highlightColors[index];
-                    final color = item['color'] as Color;
-                    final hex = item['hex'] as String;
-
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                        _insertMarkdown('<mark=$hex>', '</mark>');
-                      },
-                      child: Container(
-                        width: 50.r,
-                        height: 50.r,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.divider,
-                            width: 1,
-                          ),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            Icons.border_color_rounded,
-                            color: Colors.black87,
-                            size: 20.sp,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              AppSpacing.h12,
-            ],
-          ),
-        );
-      },
-    );
+      builder: (context) => NoteHighlightColorPickerSheet(
+        onHighlightSelected: (hex) => _insertMarkdown(
+          '<mark=$hex>',
+          '</mark>',
+          forceSelection: selection,
+        ),
+      ),
+    ).whenComplete(() => _bodyFocusNode.requestFocus());
   }
 
-  // Beautiful Text Size Picker Bottom Sheet
   void _showTextSizePicker() {
     showModalBottomSheet(
       context: context,
@@ -548,66 +433,13 @@ class _AddNotePageState extends State<AddNotePage> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Text Size Scaling',
-                    style: AppFontManager.headlineMedium.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  AppSpacing.h16,
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('A', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
-                      Expanded(
-                        child: Slider(
-                          value: _bodyFontSize,
-                          min: 12.0,
-                          max: 30.0,
-                          divisions: 9,
-                          activeColor: AppColors.primaryGreen,
-                          inactiveColor: AppColors.divider,
-                          label: '${_bodyFontSize.toInt()} sp',
-                          onChanged: (val) {
-                            setModalState(() {
-                              _bodyFontSize = val;
-                            });
-                            setState(() {});
-                          },
-                        ),
-                      ),
-                      Text('A', style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                    ],
-                  ),
-                  AppSpacing.h8,
-                  Center(
-                    child: Text(
-                      'Preview: ${_bodyFontSize.toInt()} sp',
-                      style: AppFontManager.bodyMedium.copyWith(
-                        fontSize: _bodyFontSize.sp,
-                      ),
-                    ),
-                  ),
-                  AppSpacing.h12,
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
+      builder: (context) => NoteTextSizePickerSheet(
+        initialFontSize: _bodyFontSize,
+        onFontSizeChanged: (val) => setState(() => _bodyFontSize = val),
+      ),
+    ).whenComplete(() => _bodyFocusNode.requestFocus());
   }
 
-  // Gemini AI Assistant Bottom Sheet dialog
   void _showAiAssistant() {
     showModalBottomSheet(
       context: context,
@@ -626,35 +458,28 @@ class _AddNotePageState extends State<AddNotePage> {
     final dateStr = DateFormat(
       'MMMM d, y',
     ).format(widget.note != null ? widget.note!.createdAt : DateTime.now());
-
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasCustomColor = _selectedColor != 0;
-
     final canvasColor = hasCustomColor
         ? Color(_selectedColor)
         : (isDark ? AppColors.darkBackground : AppColors.lightBackground);
-
     final customIsDark = hasCustomColor
         ? ThemeData.estimateBrightnessForColor(Color(_selectedColor)) ==
               Brightness.dark
         : isDark;
-
     final titleColor = hasCustomColor
         ? (customIsDark ? AppColors.white : AppColors.lightTextPrimary)
         : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary);
-
     final bodyColor = hasCustomColor
         ? (customIsDark
               ? AppColors.white.withValues(alpha: 0.92)
               : AppColors.lightTextPrimary.withValues(alpha: 0.92))
         : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary);
-
     final secondaryTextColor = hasCustomColor
         ? (customIsDark
               ? AppColors.white.withValues(alpha: 0.76)
               : AppColors.lightTextSecondary)
         : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary);
-
     final hintColor = hasCustomColor
         ? (customIsDark
               ? AppColors.white.withValues(alpha: 0.55)
@@ -663,855 +488,383 @@ class _AddNotePageState extends State<AddNotePage> {
 
     return Hero(
       tag: widget.note != null ? 'note_${widget.note!.id}' : 'new_note_hero',
-      child: Scaffold(
-        backgroundColor: canvasColor,
-        resizeToAvoidBottomInset: true,
-        body: SafeArea(
-          child: Column(
-            children: [
-              // ─── Top Bar ──────────────────────────────────────────────
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                child: Row(
-                  children: [
-                    // Close button
-                    InkWell(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        width: 36.w,
-                        height: 36.h,
-                        decoration: BoxDecoration(
-                          color: hasCustomColor
-                              ? Colors.black.withValues(alpha: 0.05)
-                              : (isDark
-                                    ? AppColors.darkSurfaceVariant
-                                    : AppColors.lightSurfaceVariant),
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
-                        child: Icon(
-                          Icons.close_rounded,
-                          color: bodyColor,
-                          size: 18.sp,
-                        ),
-                      ),
-                    ),
-                    // Title
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.w),
-                        child: Text(
-                          widget.note != null
-                              ? 'addNoteEdit'.tr
-                              : 'addNoteTitle'.tr,
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppFontManager.headlineMedium.copyWith(
-                            color: titleColor,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Text Size Scaling
-                    IconButton(
-                      icon: Icon(
-                        Icons.text_fields_rounded,
-                        color: secondaryTextColor,
-                        size: 20.sp,
-                      ),
-                      tooltip: 'Text Size Scaling',
-                      onPressed: _showTextSizePicker,
-                    ),
-
-                    // Preview/Edit Toggle Button
-                    IconButton(
-                      icon: Icon(
-                        _isPreviewMode
-                            ? Icons.edit_outlined
-                            : Icons.visibility_outlined,
-                        color: secondaryTextColor,
-                        size: 20.sp,
-                      ),
-                      tooltip: _isPreviewMode ? 'Edit Note' : 'Preview Note',
-                      onPressed: () {
-                        setState(() {
-                          _isPreviewMode = !_isPreviewMode;
-                        });
-                      },
-                    ),
-
-                    // More Options Dropdown
-                    PopupMenuButton<String>(
-                      icon: Icon(
-                        Icons.more_vert_rounded,
-                        color: secondaryTextColor,
-                        size: 20.sp,
-                      ),
-                      color: isDark ? AppColors.darkSurface : Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      onSelected: (value) async {
-                        if (value == 'pin') {
-                          setState(() {
-                            _isPinned = !_isPinned;
-                          });
-                        } else if (value == 'history') {
-                          _showVersionHistory();
-                        } else if (value == 'delete') {
-                          await _archiveNote(context);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem<String>(
-                          value: 'pin',
-                          child: Row(
-                            children: [
-                              Icon(
-                                _isPinned
-                                    ? Icons.push_pin_rounded
-                                    : Icons.push_pin_outlined,
-                                color: _isPinned
-                                    ? const Color(0xFFC6A052)
-                                    : secondaryTextColor,
-                                size: 18.sp,
-                              ),
-                              AppSpacing.w10,
-                              Text(
-                                _isPinned ? 'Unpin Note' : 'Pin Note',
-                                style: AppFontManager.bodyMedium.copyWith(
-                                  color: bodyColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if ((_currentNoteId != null &&
-                                _currentNoteId!.isNotEmpty) ||
-                            (widget.note != null &&
-                                widget.note!.id.isNotEmpty))
-                          PopupMenuItem<String>(
-                            value: 'history',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.history_rounded,
-                                  color: secondaryTextColor,
-                                  size: 18.sp,
-                                ),
-                                AppSpacing.w10,
-                                Text(
-                                  'Version History',
-                                  style: AppFontManager.bodyMedium.copyWith(
-                                    color: bodyColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (widget.note != null ||
-                            (_currentNoteId != null &&
-                                _currentNoteId!.isNotEmpty))
-                          PopupMenuItem<String>(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.archive_outlined,
-                                  color: AppColors.error,
-                                  size: 18.sp,
-                                ),
-                                AppSpacing.w10,
-                                Text(
-                                  'Archive Note',
-                                  style: AppFontManager.bodyMedium.copyWith(
-                                    color: AppColors.error,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-
-                    // Save button
-                    AppSaveButton(
-                      isLoading: _isSaving,
-                      onPressed: () => _save(context),
-                    ),
-                  ],
-                ),
-              ),
-
-              Divider(
-                height: 1,
-                color: hasCustomColor
-                    ? Colors.black.withValues(alpha: 0.08)
-                    : (isDark ? AppColors.darkDivider : AppColors.lightDivider),
-              ),
-
-              // ─── Metadata row ─────────────────────────────────────────
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
-                child: Row(
-                  children: [
-                    MetaChip(
-                      icon: Icons.calendar_today_outlined,
-                      label: dateStr,
-                      hasCustomColor: hasCustomColor,
-                      isDark: isDark,
-                    ),
-                    AppSpacing.w10,
-                    MetaChip(
-                      icon: Icons.folder_outlined,
-                      label: _categoryName,
-                      hasCustomColor: hasCustomColor,
-                      isDark: isDark,
-                    ),
-                  ],
-                ),
-              ),
-
-              // ─── Editing area ─────────────────────────────────────────
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      child: PopScope(
+        canPop: _canPop,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          _autoSaveTimer?.cancel();
+          if (_isDirty) {
+            await _autoSave();
+          }
+          if (context.mounted) {
+            setState(() {
+              _canPop = true;
+            });
+            Navigator.of(context).pop();
+          }
+        },
+        child: Scaffold(
+          backgroundColor: canvasColor,
+          resizeToAvoidBottomInset: true,
+          body: SafeArea(
+            child: Column(
+              children: [
+                // Top AppBar
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 12.h,
+                  ),
+                  child: Row(
                     children: [
-                      // Title field
-                      _isPreviewMode
-                          ? Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8.h),
-                              child: Text(
-                                _titleController.text.isEmpty
-                                    ? 'Untitled'
-                                    : _titleController.text,
-                                style: AppFontManager.inputTitle.copyWith(
-                                  color: titleColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            )
-                          : TextField(
-                              textInputAction: TextInputAction.next,
-                              controller: _titleController,
-                              cursorColor: titleColor,
-                              style: AppFontManager.inputTitle.copyWith(
-                                color: titleColor,
-                              ),
-                              maxLines: null,
-                              keyboardType: TextInputType.multiline,
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: InputDecoration(
-                                hintText: 'addNoteTitleHint'.tr,
-                                hintStyle: AppFontManager.inputTitle.copyWith(
-                                  color: hintColor,
-                                ),
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                contentPadding: EdgeInsets.zero,
-                                filled: false,
-                              ),
-                            ),
-                      AppSpacing.h12,
-
-                      Divider(
-                        color: hasCustomColor
-                            ? Colors.black.withValues(alpha: 0.08)
-                            : (isDark
-                                  ? AppColors.darkDivider
-                                  : AppColors.lightDivider),
-                      ),
-                      AppSpacing.h12,
-
-                      // Body field
-                      _isPreviewMode
-                          ? Padding(
-                              padding: EdgeInsets.only(bottom: 40.h),
-                              child: _bodyController.text.trim().isEmpty
-                                  ? Container(
-                                      width: double.infinity,
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 40.h,
-                                        horizontal: 16.w,
-                                      ),
-                                      alignment: Alignment.center,
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.edit_note_rounded,
-                                            size: 40.sp,
-                                            color: secondaryTextColor
-                                                .withValues(alpha: 0.45),
-                                          ),
-                                          SizedBox(height: 12.h),
-                                          Text(
-                                            'No content yet.\nSwitch to edit mode to start writing!',
-                                            textAlign: TextAlign.center,
-                                            style: AppFontManager.bodyMedium
-                                                .copyWith(
-                                                  color: secondaryTextColor
-                                                      .withValues(alpha: 0.82),
-                                                  height: 1.4,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : MarkdownText(
-                                      text: _bodyController.text,
-                                      textColor: bodyColor,
-                                      fontSize: _bodyFontSize,
-                                    ),
-                            )
-                          : TextField(
-                              controller: _bodyController,
-                              cursorColor: bodyColor,
-                              style: AppFontManager.inputBody.copyWith(
-                                color: bodyColor,
-                                fontSize: _bodyFontSize.sp,
-                              ),
-                              maxLines: null,
-                              keyboardType: TextInputType.multiline,
-                              textCapitalization: TextCapitalization.sentences,
-                              decoration: InputDecoration(
-                                hintText: 'addNoteBodyHint'.tr,
-                                hintStyle: AppFontManager.inputBody.copyWith(
-                                  color: hintColor,
-                                  fontSize: _bodyFontSize.sp,
-                                ),
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                contentPadding: EdgeInsets.zero,
-                                filled: false,
-                              ),
-                            ),
-                      AppSpacing.h40,
-                    ],
-                  ),
-                ),
-              ),
-
-              // ─── Formatting Helper Toolbar ────────────────────────────
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                decoration: BoxDecoration(
-                  color: hasCustomColor
-                      ? Colors.black.withValues(alpha: 0.03)
-                      : (isDark
-                            ? AppColors.darkSurface
-                            : AppColors.lightSurface),
-                  border: Border(
-                    top: BorderSide(
-                      color: hasCustomColor
-                          ? Colors.black.withValues(alpha: 0.08)
-                          : AppColors.divider.withValues(alpha: 0.5),
-                      width: 0.5,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  children: _isPreviewMode
-                      ? [
-                          const Spacer(),
-                          Builder(
-                            builder: (context) {
-                              final text = _bodyController.text.trim();
-                              final words = text.isEmpty
-                                  ? 0
-                                  : text.split(RegExp(r'\s+')).length;
-                              final readTime = (words / 200).ceil();
-                              final saveStatus = _isAutoSaving
-                                  ? ' • Saving...'
-                                  : (_currentNoteId != null &&
-                                            _currentNoteId!.isNotEmpty
-                                        ? ' • Saved'
-                                        : '');
-
-                              return Text(
-                                '$words ${'wordCount'.tr} • $readTime ${'readTime'.tr}$saveStatus',
-                                style: AppFontManager.bodySmall.copyWith(
-                                  fontSize: 11.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: secondaryTextColor,
-                                ),
-                              );
-                            },
-                          ),
-                          const Spacer(),
-                        ]
-                      : [
-                          // Color picker launcher
-                          IconButton(
-                            icon: Icon(
-                              Icons.palette_outlined,
-                              color: hasCustomColor
-                                  ? bodyColor
-                                  : AppColors.primaryGreen,
-                              size: 20.sp,
-                            ),
-                            onPressed: _showColorPicker,
-                          ),
-
-                          // Sparkles AI Assistant button
-                          IconButton(
-                            icon: Icon(
-                              Icons.auto_awesome_rounded,
-                              color: const Color(0xFF8B5CF6), // Purple AI glow
-                              size: 20.sp,
-                            ),
-                            tooltip: 'Gemini AI Assistant',
-                            onPressed: _showAiAssistant,
-                          ),
-
-                          Container(
-                            height: 20.h,
-                            width: 1.w,
+                      InkWell(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 36.w,
+                          height: 36.h,
+                          decoration: BoxDecoration(
                             color: hasCustomColor
-                                ? Colors.black.withValues(alpha: 0.08)
-                                : AppColors.divider,
-                            margin: EdgeInsets.symmetric(horizontal: 4.w),
+                                ? Colors.black.withValues(alpha: 0.05)
+                                : (isDark
+                                      ? AppColors.darkSurfaceVariant
+                                      : AppColors.lightSurfaceVariant),
+                            borderRadius: BorderRadius.circular(10.r),
                           ),
-
-                          // Formatting helpers inside a horizontal scroll view to fix overflow
-                          Expanded(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              physics: const BouncingScrollPhysics(),
+                          child: Icon(
+                            Icons.close_rounded,
+                            color: bodyColor,
+                            size: 18.sp,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.w),
+                          child: Text(
+                            widget.note != null
+                                ? 'addNoteEdit'.tr
+                                : 'addNoteTitle'.tr,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppFontManager.headlineMedium.copyWith(
+                              color: titleColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.text_fields_rounded,
+                          color: secondaryTextColor,
+                          size: 20.sp,
+                        ),
+                        tooltip: 'textSizeScaling'.tr,
+                        onPressed: _showTextSizePicker,
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          _isPreviewMode
+                              ? Icons.edit_outlined
+                              : Icons.visibility_outlined,
+                          color: secondaryTextColor,
+                          size: 20.sp,
+                        ),
+                        tooltip: _isPreviewMode
+                            ? 'addNoteEdit'.tr
+                            : 'previewLabel'.tr,
+                        onPressed: () =>
+                            setState(() => _isPreviewMode = !_isPreviewMode),
+                      ),
+                      PopupMenuButton<String>(
+                        icon: Icon(
+                          Icons.more_vert_rounded,
+                          color: secondaryTextColor,
+                          size: 20.sp,
+                        ),
+                        color: isDark ? AppColors.darkSurface : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        onSelected: (value) async {
+                          if (value == 'pin') {
+                            setState(() => _isPinned = !_isPinned);
+                          } else if (value == 'history') {
+                            _showVersionHistory();
+                          } else if (value == 'delete') {
+                            await _archiveNote(context);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem<String>(
+                            value: 'pin',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  _isPinned
+                                      ? Icons.push_pin_rounded
+                                      : Icons.push_pin_outlined,
+                                  color: _isPinned
+                                      ? const Color(0xFFC6A052)
+                                      : secondaryTextColor,
+                                  size: 18.sp,
+                                ),
+                                AppSpacing.w10,
+                                Text(
+                                  _isPinned ? 'unpinNote'.tr : 'pinNote'.tr,
+                                  style: AppFontManager.bodyMedium.copyWith(
+                                    color: bodyColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if ((_currentNoteId != null &&
+                                  _currentNoteId!.isNotEmpty) ||
+                              (widget.note != null &&
+                                  widget.note!.id.isNotEmpty))
+                            PopupMenuItem<String>(
+                              value: 'history',
                               child: Row(
-                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  ToolbarButton(
-                                    icon: Icons.format_bold_rounded,
-                                    color: bodyColor,
-                                    onPressed: () =>
-                                        _insertMarkdown('**', '**'),
+                                  Icon(
+                                    Icons.history_rounded,
+                                    color: secondaryTextColor,
+                                    size: 18.sp,
                                   ),
-                                  ToolbarButton(
-                                    icon: Icons.format_italic_rounded,
-                                    color: bodyColor,
-                                    onPressed: () => _insertMarkdown('*', '*'),
-                                  ),
-                                  ToolbarButton(
-                                    icon: Icons.format_underlined_rounded,
-                                    color: bodyColor,
-                                    onPressed: () =>
-                                        _insertMarkdown('<u>', '</u>'),
-                                  ),
-                                  ToolbarButton(
-                                    icon: Icons.border_color_rounded, // Highlight icon
-                                    color: bodyColor,
-                                    onPressed: _showHighlightColorPicker,
-                                  ),
-                                  ToolbarButton(
-                                    icon: Icons.format_color_text_rounded, // Color change icon
-                                    color: bodyColor,
-                                    onPressed: _showTextColorPicker,
-                                  ),
-                                  ToolbarButton(
-                                    icon: Icons.title_rounded,
-                                    color: bodyColor,
-                                    onPressed: () => _insertMarkdown('# ', ''),
-                                  ),
-                                  ToolbarButton(
-                                    icon: Icons.format_list_bulleted_rounded,
-                                    color: bodyColor,
-                                    onPressed: () => _insertMarkdown('- ', ''),
-                                  ),
-                                  ToolbarButton(
-                                    icon: Icons.format_list_numbered_rounded,
-                                    color: bodyColor,
-                                    onPressed: () => _insertMarkdown('1. ', ''),
-                                  ),
-                                  ToolbarButton(
-                                    icon: Icons.checklist_rounded,
-                                    color: bodyColor,
-                                    onPressed: () =>
-                                        _insertMarkdown('- [ ] ', ''),
+                                  AppSpacing.w10,
+                                  Text(
+                                    'versionHistory'.tr,
+                                    style: AppFontManager.bodyMedium.copyWith(
+                                      color: bodyColor,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                          ),
-
-                          // Statistics (Compact)
-                          Padding(
-                            padding: EdgeInsets.only(left: 6.w),
-                            child: Builder(
-                              builder: (context) {
-                                final text = _bodyController.text.trim();
-                                final words = text.isEmpty
-                                    ? 0
-                                    : text.split(RegExp(r'\s+')).length;
-                                final saveStatus = _isAutoSaving
-                                    ? 'Saving...'
-                                    : (_currentNoteId != null &&
-                                              _currentNoteId!.isNotEmpty
-                                          ? 'Saved'
-                                          : '');
-
-                                return Text(
-                                  saveStatus.isNotEmpty
-                                      ? '$words w • $saveStatus'
-                                      : '$words w',
-                                  style: AppFontManager.bodySmall.copyWith(
-                                    fontSize: 10.sp,
-                                    color: _isAutoSaving
-                                        ? const Color(0xFF8B5CF6)
-                                        : secondaryTextColor.withValues(
-                                            alpha: 0.85,
-                                          ),
+                          if (widget.note != null ||
+                              (_currentNoteId != null &&
+                                  _currentNoteId!.isNotEmpty))
+                            PopupMenuItem<String>(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.archive_outlined,
+                                    color: AppColors.error,
+                                    size: 18.sp,
                                   ),
-                                );
-                              },
+                                  AppSpacing.w10,
+                                  Text(
+                                    'archiveNote'.tr,
+                                    style: AppFontManager.bodyMedium.copyWith(
+                                      color: AppColors.error,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
                         ],
+                      ),
+                      AppSaveButton(
+                        isLoading: _isSaving,
+                        onPressed: () => _save(context),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                Divider(
+                  height: 1,
+                  color: hasCustomColor
+                      ? Colors.black.withValues(alpha: 0.08)
+                      : (isDark
+                            ? AppColors.darkDivider
+                            : AppColors.lightDivider),
+                ),
+
+                // Metadata Row
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 14.h,
+                  ),
+                  child: Row(
+                    children: [
+                      MetaChip(
+                        icon: Icons.calendar_today_outlined,
+                        label: dateStr,
+                        hasCustomColor: hasCustomColor,
+                        isDark: isDark,
+                      ),
+                      AppSpacing.w10,
+                      MetaChip(
+                        icon: Icons.folder_outlined,
+                        label: _categoryName,
+                        hasCustomColor: hasCustomColor,
+                        isDark: isDark,
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Editor Workspace
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (!_isPreviewMode && !_bodyFocusNode.hasFocus) {
+                        _bodyFocusNode.requestFocus();
+                        // Move cursor to the end of the text
+                        _bodyController.selection = TextSelection.fromPosition(
+                          TextPosition(offset: _bodyController.text.length),
+                        );
+                      }
+                    },
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(horizontal: 20.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _isPreviewMode
+                              ? Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8.h),
+                                  child: Text(
+                                    _titleController.text.isEmpty
+                                        ? 'untitled'.tr
+                                        : _titleController.text,
+                                    style: AppFontManager.inputTitle.copyWith(
+                                      color: titleColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                )
+                              : TextField(
+                                  textInputAction: TextInputAction.next,
+                                  controller: _titleController,
+                                  cursorColor: titleColor,
+                                  style: AppFontManager.inputTitle.copyWith(
+                                    color: titleColor,
+                                  ),
+                                  maxLines: null,
+                                  keyboardType: TextInputType.multiline,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  decoration: InputDecoration(
+                                    hintText: 'addNoteTitleHint'.tr,
+                                    hintStyle: AppFontManager.inputTitle
+                                        .copyWith(color: hintColor),
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                ),
+                          AppSpacing.h12,
+                          Divider(
+                            color: hasCustomColor
+                                ? Colors.black.withValues(alpha: 0.08)
+                                : (isDark
+                                      ? AppColors.darkDivider
+                                      : AppColors.lightDivider),
+                          ),
+                          AppSpacing.h12,
+                          _isPreviewMode
+                              ? Padding(
+                                  padding: EdgeInsets.only(bottom: 40.h),
+                                  child: _bodyController.text.trim().isEmpty
+                                      ? Container(
+                                          width: double.infinity,
+                                          padding: EdgeInsets.symmetric(
+                                            vertical: 40.h,
+                                            horizontal: 16.w,
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.edit_note_rounded,
+                                                size: 40.sp,
+                                                color: secondaryTextColor
+                                                    .withValues(alpha: 0.45),
+                                              ),
+                                              SizedBox(height: 12.h),
+                                              Text(
+                                                'noContentText'.tr,
+                                                textAlign: TextAlign.center,
+                                                style: AppFontManager.bodyMedium
+                                                    .copyWith(
+                                                      color: secondaryTextColor
+                                                          .withValues(
+                                                            alpha: 0.82,
+                                                          ),
+                                                      height: 1.4,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      : MarkdownText(
+                                          text: _bodyController.text,
+                                          textColor: bodyColor,
+                                          fontSize: _bodyFontSize,
+                                        ),
+                                )
+                              : TextField(
+                                  controller: _bodyController,
+                                  focusNode: _bodyFocusNode,
+                                  cursorColor: bodyColor,
+                                  style: AppFontManager.inputBody.copyWith(
+                                    color: bodyColor,
+                                    fontSize: _bodyFontSize.sp,
+                                    height: 1.5,
+                                  ),
+                                  maxLines: null,
+                                  keyboardType: TextInputType.multiline,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  decoration: InputDecoration(
+                                    hintText: 'addNoteBodyHint'.tr,
+                                    hintStyle: AppFontManager.inputBody
+                                        .copyWith(
+                                          color: hintColor,
+                                          fontSize: _bodyFontSize.sp,
+                                          height: 1.5,
+                                        ),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                    filled: false,
+                                  ),
+                                ),
+                          AppSpacing.h40,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Formatting Toolbar
+                NoteEditorToolbar(
+                  isPreviewMode: _isPreviewMode,
+                  isAutoSaving: _isAutoSaving,
+                  bodyText: _bodyController.text,
+                  currentNoteId: _currentNoteId,
+                  hasCustomColor: hasCustomColor,
+                  isDark: isDark,
+                  bodyColor: bodyColor,
+                  secondaryTextColor: secondaryTextColor,
+                  onShowColorPicker: _showColorPicker,
+                  onShowAiAssistant: _showAiAssistant,
+                  onInsertMarkdown: _insertMarkdown,
+                  onShowHighlightColorPicker: _showHighlightColorPicker,
+                  onShowTextColorPicker: _showTextColorPicker,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
-  }
-}
-
-/// A specialized custom [TextEditingController] that dynamically renders inline
-/// markdown (**bold**, *italic*, `<u>underline</u>`, `==highlight==`, headers, and `<color=...>`)
-/// live in the text editor.
-class MarkdownTextEditingController extends TextEditingController {
-  final ValueGetter<Color> getTextColor;
-
-  MarkdownTextEditingController({
-    super.text,
-    required this.getTextColor,
-  });
-
-  @override
-  TextSpan buildTextSpan({
-    required BuildContext context,
-    TextStyle? style,
-    required bool withComposing,
-  }) {
-    final textStyle = style ?? TextStyle(color: getTextColor());
-    return _parseMarkdownToSpan(text, textStyle);
-  }
-
-  TextSpan _parseMarkdownToSpan(String rawText, TextStyle baseStyle) {
-    final spans = <TextSpan>[];
-    int index = 0;
-
-    // A helper to style helper tags (e.g., **, *, ==, <color...>) so they are completely invisible.
-    TextStyle tagStyle(TextStyle base) => const TextStyle(
-          color: Colors.transparent,
-          fontSize: 0.01,
-          letterSpacing: -2.0,
-          fontWeight: FontWeight.normal,
-          fontStyle: FontStyle.normal,
-          decoration: TextDecoration.none,
-          backgroundColor: Colors.transparent,
-        );
-
-    bool isDigit(String char) => '0123456789'.contains(char);
-
-    while (index < rawText.length) {
-      final isStartOfLine = index == 0 || rawText[index - 1] == '\n';
-      final endOfLine = rawText.indexOf('\n', index);
-      final searchLimit = endOfLine == -1 ? rawText.length : endOfLine;
-
-      // A. Checklist Item: "- [ ] " or "- [x] "
-      if (isStartOfLine &&
-          (rawText.startsWith('- [ ] ', index) ||
-           rawText.startsWith('- [x] ', index) ||
-           rawText.startsWith('- [X] ', index))) {
-        final isChecked = rawText.startsWith('- [x] ', index) || rawText.startsWith('- [X] ', index);
-        spans.add(TextSpan(text: rawText.substring(index, index + 6), style: tagStyle(baseStyle)));
-        spans.add(TextSpan(
-          text: isChecked ? '☑ ' : '☐ ',
-          style: baseStyle.copyWith(
-            color: isChecked ? AppColors.primaryGreen : baseStyle.color?.withValues(alpha: 0.6),
-            fontWeight: FontWeight.bold,
-          ),
-        ));
-        index += 6;
-        continue;
-      }
-
-      // B. Bullet Item: "- " or "* "
-      if (isStartOfLine &&
-          (rawText.startsWith('- ', index) || rawText.startsWith('* ', index))) {
-        spans.add(TextSpan(text: rawText.substring(index, index + 2), style: tagStyle(baseStyle)));
-        spans.add(TextSpan(
-          text: '• ',
-          style: baseStyle.copyWith(
-            fontWeight: FontWeight.bold,
-            color: baseStyle.color?.withValues(alpha: 0.8),
-          ),
-        ));
-        index += 2;
-        continue;
-      }
-
-      // C. Numbered Item: e.g. "1. " at the start of a line
-      if (isStartOfLine) {
-        int searchIdx = index;
-        while (searchIdx < rawText.length && isDigit(rawText[searchIdx])) {
-          searchIdx++;
-        }
-        if (searchIdx > index && rawText.startsWith('. ', searchIdx)) {
-          final numText = rawText.substring(index, searchIdx + 2);
-          spans.add(TextSpan(text: numText, style: tagStyle(baseStyle)));
-          spans.add(TextSpan(
-            text: '${rawText.substring(index, searchIdx)}. ',
-            style: baseStyle.copyWith(
-              fontWeight: FontWeight.bold,
-              color: baseStyle.color ?? getTextColor(),
-            ),
-          ));
-          index = searchIdx + 2;
-          continue;
-        }
-      }
-
-      // D. Bold "**"
-      if (rawText.startsWith('**', index)) {
-        final closingIndex = rawText.indexOf('**', index + 2);
-        if (closingIndex != -1 && closingIndex < searchLimit) {
-          spans.add(TextSpan(text: '**', style: tagStyle(baseStyle)));
-          final boldText = rawText.substring(index + 2, closingIndex);
-          spans.add(TextSpan(
-            text: boldText,
-            style: baseStyle.copyWith(fontWeight: FontWeight.bold),
-          ));
-          spans.add(TextSpan(text: '**', style: tagStyle(baseStyle)));
-          index = closingIndex + 2;
-          continue;
-        }
-      }
-
-      // E. Highlight "==" or "<mark>" / "<mark=color>"
-      if (rawText.startsWith('==', index)) {
-        final closingIndex = rawText.indexOf('==', index + 2);
-        if (closingIndex != -1 && closingIndex < searchLimit) {
-          spans.add(TextSpan(text: '==', style: tagStyle(baseStyle)));
-          final highlightedText = rawText.substring(index + 2, closingIndex);
-          spans.add(TextSpan(
-            text: highlightedText,
-            style: baseStyle.copyWith(
-              backgroundColor: const Color(0xFFFFF9C4),
-              color: Colors.black87,
-            ),
-          ));
-          spans.add(TextSpan(text: '==', style: tagStyle(baseStyle)));
-          index = closingIndex + 2;
-          continue;
-        }
-      }
-
-      if (rawText.startsWith('<mark', index)) {
-        final closingIndex = rawText.indexOf('>', index + 5);
-        if (closingIndex != -1 && closingIndex < searchLimit) {
-          final markAttr = rawText.startsWith('<mark=', index)
-              ? rawText.substring(index + 6, closingIndex)
-              : 'yellow';
-          final endTagIndex = rawText.indexOf('</mark>', closingIndex + 1);
-          if (endTagIndex != -1 && endTagIndex < searchLimit) {
-            final highlightedText = rawText.substring(closingIndex + 1, endTagIndex);
-            
-            Color parsedBg = const Color(0xFFFFF9C4); // default yellow
-            try {
-              if (markAttr.startsWith('#')) {
-                final hexStr = markAttr.replaceAll('#', '');
-                if (hexStr.length == 6) {
-                  parsedBg = Color(int.parse('FF$hexStr', radix: 16));
-                } else if (hexStr.length == 8) {
-                  parsedBg = Color(int.parse(hexStr, radix: 16));
-                }
-              } else {
-                switch (markAttr.toLowerCase()) {
-                  case 'yellow':
-                    parsedBg = const Color(0xFFFFF9C4);
-                    break;
-                  case 'green':
-                    parsedBg = const Color(0xFFC8E6C9);
-                    break;
-                  case 'blue':
-                    parsedBg = const Color(0xFFBBDEFB);
-                    break;
-                  case 'pink':
-                    parsedBg = const Color(0xFFF8BBD0);
-                    break;
-                  case 'orange':
-                    parsedBg = const Color(0xFFFFE0B2);
-                    break;
-                  case 'red':
-                    parsedBg = const Color(0xFFFFCDD2);
-                    break;
-                  case 'purple':
-                    parsedBg = const Color(0xFFE1BEE7);
-                    break;
-                  case 'teal':
-                    parsedBg = const Color(0xFFB2DFDB);
-                    break;
-                }
-              }
-            } catch (_) {}
-
-            spans.add(TextSpan(text: '<mark=$markAttr>', style: tagStyle(baseStyle)));
-            spans.add(TextSpan(
-              text: highlightedText,
-              style: baseStyle.copyWith(
-                backgroundColor: parsedBg,
-                color: Colors.black87,
-              ),
-            ));
-            spans.add(TextSpan(text: '</mark>', style: tagStyle(baseStyle)));
-            index = endTagIndex + 7;
-            continue;
-          }
-        }
-      }
-
-      // F. Underline "<u>"
-      if (rawText.startsWith('<u>', index)) {
-        final closingIndex = rawText.indexOf('</u>', index + 3);
-        if (closingIndex != -1 && closingIndex < searchLimit) {
-          spans.add(TextSpan(text: '<u>', style: tagStyle(baseStyle)));
-          final underlinedText = rawText.substring(index + 3, closingIndex);
-          spans.add(TextSpan(
-            text: underlinedText,
-            style: baseStyle.copyWith(decoration: TextDecoration.underline),
-          ));
-          spans.add(TextSpan(text: '</u>', style: tagStyle(baseStyle)));
-          index = closingIndex + 4;
-          continue;
-        }
-      }
-
-      // G. Color "<color="
-      if (rawText.startsWith('<color=', index)) {
-        final closingIndex = rawText.indexOf('>', index + 7);
-        if (closingIndex != -1 && closingIndex < searchLimit) {
-          final colorAttr = rawText.substring(index + 7, closingIndex);
-          final endTagIndex = rawText.indexOf('</color>', closingIndex + 1);
-          if (endTagIndex != -1 && endTagIndex < searchLimit) {
-            final coloredText = rawText.substring(closingIndex + 1, endTagIndex);
-            
-            Color parsedColor = baseStyle.color ?? getTextColor();
-            try {
-              if (colorAttr.startsWith('#')) {
-                final hexStr = colorAttr.replaceAll('#', '');
-                if (hexStr.length == 6) {
-                  parsedColor = Color(int.parse('FF$hexStr', radix: 16));
-                } else if (hexStr.length == 8) {
-                  parsedColor = Color(int.parse(hexStr, radix: 16));
-                }
-              } else {
-                switch (colorAttr.toLowerCase()) {
-                  case 'red':
-                    parsedColor = const Color(0xFFEF5350);
-                    break;
-                  case 'green':
-                    parsedColor = const Color(0xFF66BB6A);
-                    break;
-                  case 'blue':
-                    parsedColor = const Color(0xFF42A5F5);
-                    break;
-                  case 'orange':
-                    parsedColor = const Color(0xFFFFA726);
-                    break;
-                  case 'purple':
-                    parsedColor = const Color(0xFFAB47BC);
-                    break;
-                  case 'yellow':
-                    parsedColor = const Color(0xFFFFEE58);
-                    break;
-                  case 'pink':
-                    parsedColor = const Color(0xFFEC407A);
-                    break;
-                  case 'teal':
-                    parsedColor = const Color(0xFF26A69A);
-                    break;
-                }
-              }
-            } catch (_) {}
-
-            spans.add(TextSpan(text: '<color=$colorAttr>', style: tagStyle(baseStyle)));
-            spans.add(TextSpan(
-              text: coloredText,
-              style: baseStyle.copyWith(color: parsedColor),
-            ));
-            spans.add(TextSpan(text: '</color>', style: tagStyle(baseStyle)));
-            index = endTagIndex + 8;
-            continue;
-          }
-        }
-      }
-
-      // H. Italic "*"
-      if (rawText.startsWith('*', index)) {
-        final closingIndex = rawText.indexOf('*', index + 1);
-        if (closingIndex != -1 && closingIndex < searchLimit) {
-          spans.add(TextSpan(text: '*', style: tagStyle(baseStyle)));
-          final italicText = rawText.substring(index + 1, closingIndex);
-          spans.add(TextSpan(
-            text: italicText,
-            style: baseStyle.copyWith(fontStyle: FontStyle.italic),
-          ));
-          spans.add(TextSpan(text: '*', style: tagStyle(baseStyle)));
-          index = closingIndex + 1;
-          continue;
-        }
-      }
-
-      // I. Header "# " or "## "
-      if (isStartOfLine && rawText.startsWith('# ', index)) {
-        spans.add(TextSpan(text: '# ', style: tagStyle(baseStyle)));
-        final endOfLine = rawText.indexOf('\n', index + 2);
-        final lineLen = endOfLine == -1 ? rawText.length - (index + 2) : endOfLine - (index + 2);
-        final headerText = rawText.substring(index + 2, index + 2 + lineLen);
-        spans.add(TextSpan(
-          text: headerText,
-          style: baseStyle.copyWith(
-            fontWeight: FontWeight.bold,
-            fontSize: baseStyle.fontSize != null ? baseStyle.fontSize! * 1.35 : 20.sp,
-          ),
-        ));
-        index = index + 2 + lineLen;
-        continue;
-      }
-
-      if (isStartOfLine && rawText.startsWith('## ', index)) {
-        spans.add(TextSpan(text: '## ', style: tagStyle(baseStyle)));
-        final endOfLine = rawText.indexOf('\n', index + 3);
-        final lineLen = endOfLine == -1 ? rawText.length - (index + 3) : endOfLine - (index + 3);
-        final headerText = rawText.substring(index + 3, index + 3 + lineLen);
-        spans.add(TextSpan(
-          text: headerText,
-          style: baseStyle.copyWith(
-            fontWeight: FontWeight.bold,
-            fontSize: baseStyle.fontSize != null ? baseStyle.fontSize! * 1.15 : 17.sp,
-          ),
-        ));
-        index = index + 3 + lineLen;
-        continue;
-      }
-
-      // Plain char
-      spans.add(TextSpan(
-        text: rawText[index],
-        style: baseStyle,
-      ));
-      index++;
-    }
-
-    return TextSpan(children: spans);
   }
 }
