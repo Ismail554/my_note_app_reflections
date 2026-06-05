@@ -85,175 +85,187 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
         ? AppColors.darkBackground
         : AppColors.lightBackground;
 
-    return Container(
-      padding: EdgeInsets.only(
-        top: 20.h,
-        left: 24.w,
-        right: 24.w,
-        bottom: 32.h + MediaQuery.of(context).viewInsets.bottom,
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.7,
       ),
-      decoration: BoxDecoration(
-        color: panelBg,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.15),
-            blurRadius: 30,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40.w,
-              height: 4.h,
-              margin: EdgeInsets.only(bottom: 20.h),
-              decoration: BoxDecoration(
-                color: dividerColor,
-                borderRadius: BorderRadius.circular(2.r),
-              ),
+      child: Container(
+        padding: EdgeInsets.only(
+          top: 20.h,
+          left: 24.w,
+          right: 24.w,
+          bottom: 32.h + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        decoration: BoxDecoration(
+          color: panelBg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.15),
+              blurRadius: 30,
+              offset: const Offset(0, -5),
             ),
-          ),
-
-          Row(
+          ],
+        ),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons.auto_awesome_rounded,
-                color: const Color(0xFF8B5CF6),
-                size: 24.sp,
-              ),
-              AppSpacing.w8,
-              Text(
-                'AI Note Assistant',
-                style: AppFontManager.headlineLarge.copyWith(
-                  fontSize: 20.sp,
-                  color: textPrimary,
+              Center(
+                child: Container(
+                  width: 40.w,
+                  height: 4.h,
+                  margin: EdgeInsets.only(bottom: 20.h),
+                  decoration: BoxDecoration(
+                    color: dividerColor,
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
                 ),
               ),
-            ],
-          ),
-          AppSpacing.h4,
-          Text(
-            'Refine spelling, fix verbal slips, or generate ideas with AI.',
-            style: AppFontManager.bodySmall.copyWith(color: textSecondary),
-          ),
-          AppSpacing.h20,
 
-          if (_aiResult.isEmpty && !_isLoading) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: AiCard(
-                    icon: Icons.auto_fix_high_rounded,
-                    label: 'Polish Note',
-                    subLabel: 'Grammar & Flow',
-                    onTap: () => _triggerAction('improve'),
-                  ),
-                ),
-                AppSpacing.w12,
-                Expanded(
-                  child: AiCard(
-                    icon: Icons.title_rounded,
-                    label: 'Suggest Title',
-                    subLabel: 'Auto-generate title',
-                    onTap: () => _triggerAction('title'),
-                  ),
-                ),
-              ],
-            ),
-            AppSpacing.h12,
-            AiCard(
-              icon: Icons.record_voice_over_rounded,
-              label: 'Fix Voice Transcription Mistakes',
-              subLabel: 'Fix phonetic misspellings & mispronunciations',
-              onTap: () => _triggerAction('pronounce'),
-            ),
-          ] else ...[
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(16.r),
-              decoration: BoxDecoration(
-                color: containerBg,
-                borderRadius: BorderRadius.circular(16.r),
-                border: Border.all(color: dividerColor),
-              ),
-              child: _isLoading
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AppSpacing.h24,
-                        const CircularProgressIndicator(
-                          color: Color(0xFF8B5CF6),
-                        ),
-                        AppSpacing.h16,
-                        Text(
-                          'Gemini is working its magic...',
-                          style: AppFontManager.bodyMedium.copyWith(
-                            fontStyle: FontStyle.italic,
-                            color: textSecondary,
-                          ),
-                        ),
-                        AppSpacing.h24,
-                      ],
-                    )
-                  : SingleChildScrollView(
-                      child: Text(
-                        _aiResult,
-                        style: AppFontManager.bodyMedium.copyWith(
-                          color: textPrimary,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-            ),
-            AppSpacing.h20,
-            if (!_isLoading)
               Row(
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        setState(() {
-                          _aiResult = '';
-                          _selectedAction = '';
-                        });
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 14.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14.r),
-                        ),
-                      ),
-                      child: Text('Retry', style: AppFontManager.buttonSmall),
-                    ),
+                  Icon(
+                    Icons.auto_awesome_rounded,
+                    color: const Color(0xFF8B5CF6),
+                    size: 24.sp,
                   ),
-                  AppSpacing.w12,
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _applyChanges,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B5CF6),
-                        padding: EdgeInsets.symmetric(vertical: 14.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14.r),
-                        ),
-                      ),
-                      child: Text(
-                        'Apply to Note',
-                        style: AppFontManager.buttonSmall.copyWith(
-                          color: Colors.white,
-                        ),
-                      ),
+                  AppSpacing.w8,
+                  Text(
+                    'AI Note Assistant',
+                    style: AppFontManager.headlineLarge.copyWith(
+                      fontSize: 20.sp,
+                      color: textPrimary,
                     ),
                   ),
                 ],
               ),
-          ],
-        ],
+              AppSpacing.h4,
+              Text(
+                'Refine spelling, fix verbal slips, or generate ideas with AI.',
+                style: AppFontManager.bodySmall.copyWith(color: textSecondary),
+              ),
+              AppSpacing.h20,
+
+              if (_aiResult.isEmpty && !_isLoading) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: AiCard(
+                        icon: Icons.auto_fix_high_rounded,
+                        label: 'Polish Note',
+                        subLabel: 'Grammar & Flow',
+                        onTap: () => _triggerAction('improve'),
+                      ),
+                    ),
+                    AppSpacing.w12,
+                    Expanded(
+                      child: AiCard(
+                        icon: Icons.title_rounded,
+                        label: 'Suggest Title',
+                        subLabel: 'Auto-generate title',
+                        onTap: () => _triggerAction('title'),
+                      ),
+                    ),
+                  ],
+                ),
+                AppSpacing.h12,
+                AiCard(
+                  icon: Icons.record_voice_over_rounded,
+                  label: 'Fix Voice Transcription Mistakes',
+                  subLabel: 'Fix phonetic misspellings & mispronunciations',
+                  onTap: () => _triggerAction('pronounce'),
+                ),
+              ] else ...[
+                Container(
+                  width: double.infinity,
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.35,
+                  ),
+                  padding: EdgeInsets.all(16.r),
+                  decoration: BoxDecoration(
+                    color: containerBg,
+                    borderRadius: BorderRadius.circular(16.r),
+                    border: Border.all(color: dividerColor),
+                  ),
+                  child: _isLoading
+                      ? Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AppSpacing.h24,
+                            const CircularProgressIndicator(
+                              color: Color(0xFF8B5CF6),
+                            ),
+                            AppSpacing.h16,
+                            Text(
+                              'Gemini is working its magic...',
+                              style: AppFontManager.bodyMedium.copyWith(
+                                fontStyle: FontStyle.italic,
+                                color: textSecondary,
+                              ),
+                            ),
+                            AppSpacing.h24,
+                          ],
+                        )
+                      : SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          child: Text(
+                            _aiResult,
+                            style: AppFontManager.bodyMedium.copyWith(
+                              color: textPrimary,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                ),
+                AppSpacing.h20,
+                if (!_isLoading)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              _aiResult = '';
+                              _selectedAction = '';
+                            });
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 14.h),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14.r),
+                            ),
+                          ),
+                          child: Text('Retry', style: AppFontManager.buttonSmall),
+                        ),
+                      ),
+                      AppSpacing.w12,
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _applyChanges,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF8B5CF6),
+                            padding: EdgeInsets.symmetric(vertical: 14.h),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14.r),
+                            ),
+                          ),
+                          child: Text(
+                            'Apply to Note',
+                            style: AppFontManager.buttonSmall.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

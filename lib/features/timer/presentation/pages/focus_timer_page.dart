@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
 import 'package:Reflections/features/habit/data/models/habit_model.dart';
@@ -97,6 +98,13 @@ class _PomodoroTabState extends State<_PomodoroTab> {
   int _secondsLeft = 25 * 60;
   bool _isRunning = false;
   String _mode = 'Focus'; // Focus, Short Break, Long Break
+  late final AudioPlayer _audioPlayer;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer = AudioPlayer();
+  }
 
   void _startTimer() {
     if (_isRunning) return;
@@ -142,10 +150,23 @@ class _PomodoroTabState extends State<_PomodoroTab> {
     });
   }
 
-  void _onTimerFinished() {
-    HapticFeedback.vibrate();
+  void _onTimerFinished() async {
+    // Play completion success sound
+    try {
+      await _audioPlayer.stop();
+      await _audioPlayer.play(AssetSource('sounds/success.mp3'));
+    } catch (e) {
+      debugPrint('Error playing success sound: $e');
+    }
+
+    // Alarm/vibration feedback sequence for the end of time
+    for (int i = 0; i < 3; i++) {
+      HapticFeedback.vibrate();
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
     
     // Celebration sheet / dialogue
+    if (!mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -230,6 +251,7 @@ class _PomodoroTabState extends State<_PomodoroTab> {
   @override
   void dispose() {
     _timer?.cancel();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -452,6 +474,16 @@ class _StopwatchTabState extends State<_StopwatchTab> {
   int _milliseconds = 0;
   bool _isRunning = false;
   final List<String> _laps = [];
+  late final AudioPlayer _audioPlayer;
+  int _lastTickedSecond = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer = AudioPlayer();
+    // Configure low latency sound mode if supported by platform
+    _audioPlayer.setReleaseMode(ReleaseMode.stop);
+  }
 
   void _startStopwatch() {
     if (_isRunning) return;
@@ -460,8 +492,23 @@ class _StopwatchTabState extends State<_StopwatchTab> {
     _timer = Timer.periodic(const Duration(milliseconds: 10), (timer) {
       setState(() {
         _milliseconds += 10;
+        final currentSecond = _milliseconds ~/ 1000;
+        if (currentSecond > _lastTickedSecond) {
+          _lastTickedSecond = currentSecond;
+          _playTick();
+        }
       });
     });
+  }
+
+  void _playTick() async {
+    try {
+      await _audioPlayer.stop();
+      await _audioPlayer.play(AssetSource('sounds/tick.mp3'));
+      HapticFeedback.lightImpact();
+    } catch (e) {
+      debugPrint('Error playing tick: $e');
+    }
   }
 
   void _pauseStopwatch() {
@@ -476,6 +523,7 @@ class _StopwatchTabState extends State<_StopwatchTab> {
     setState(() {
       _isRunning = false;
       _milliseconds = 0;
+      _lastTickedSecond = 0;
       _laps.clear();
     });
   }
@@ -498,6 +546,7 @@ class _StopwatchTabState extends State<_StopwatchTab> {
   @override
   void dispose() {
     _timer?.cancel();
+    _audioPlayer.dispose();
     super.dispose();
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ToolbarButton extends StatelessWidget {
@@ -18,7 +19,10 @@ class ToolbarButton extends StatelessWidget {
     return IconButton(
       visualDensity: VisualDensity.compact,
       icon: Icon(icon, color: color, size: 18.sp),
-      onPressed: onPressed,
+      onPressed: () {
+        HapticFeedback.lightImpact();
+        onPressed();
+      },
     );
   }
 }

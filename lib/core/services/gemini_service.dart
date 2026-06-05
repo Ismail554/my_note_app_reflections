@@ -9,7 +9,7 @@ class GeminiService {
 
   static String get _apiKey => (dotenv.env['GEMINI_API_KEY'] ?? '').trim();
   static String get _url =>
-      'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$_apiKey';
+      'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=$_apiKey';
 
   Future<String> _callGemini(String prompt) async {
     if (_apiKey.isEmpty) {
@@ -33,8 +33,21 @@ class GeminiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final text = data['candidates']?[0]?['content']?['parts']?[0]?['text'] as String?;
-        return text?.trim() ?? 'No response received from AI.';
+        final parts = data['candidates']?[0]?['content']?['parts'] as List?;
+        if (parts != null && parts.isNotEmpty) {
+          // Gemini 2.5 may include "thought" parts before the actual text.
+          // Find the last part that has a 'text' key (skip thought-only parts).
+          for (int i = parts.length - 1; i >= 0; i--) {
+            final part = parts[i];
+            if (part['text'] != null && part['thought'] != true) {
+              return (part['text'] as String).trim();
+            }
+          }
+          // Fallback: return the last part's text even if marked as thought
+          final lastText = parts.last['text'] as String?;
+          if (lastText != null) return lastText.trim();
+        }
+        return 'No response received from AI.';
       } else {
         print('Gemini API Error (${response.statusCode}): ${response.body}');
         try {

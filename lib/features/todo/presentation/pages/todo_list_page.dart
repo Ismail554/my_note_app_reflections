@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -143,7 +144,10 @@ class _TodoListPageState extends State<TodoListPage> {
           children: [
             // Checkbox
             GestureDetector(
-              onTap: () => context.read<TodoProvider>().toggleTodoStatus(todo),
+              onTap: () {
+                HapticFeedback.mediumImpact();
+                context.read<TodoProvider>().toggleTodoStatus(todo);
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 width: 22.r,

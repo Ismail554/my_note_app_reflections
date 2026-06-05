@@ -304,7 +304,10 @@ class _HabitCard extends StatelessWidget {
         }
       },
       child: GestureDetector(
-        onTap: onToggle,
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          onToggle();
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           padding: EdgeInsets.all(16.r),
@@ -390,7 +393,10 @@ class _HabitCard extends StatelessWidget {
                             }
 
                             return GestureDetector(
-                              onTap: () => onLevelChanged(currentLvl == dotVal ? 0 : dotVal),
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                onLevelChanged(currentLvl == dotVal ? 0 : dotVal);
+                              },
                               child: Container(
                                 width: 14.r,
                                 height: 14.r,
