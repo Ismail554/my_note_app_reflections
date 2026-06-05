@@ -3,6 +3,9 @@ import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:Reflections/features/reminder/data/models/reminder_model.dart';
 import 'package:Reflections/features/timer/presentation/providers/focus_timer_provider.dart';
+import 'package:Reflections/core/utils/app_navigator.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/material.dart';
 
 class NotificationService {
   NotificationService._internal();
@@ -50,7 +53,7 @@ class NotificationService {
     // 4. Plugin initialization
     await _notificationsPlugin.initialize(
       settings: initSettings,
-      onDidReceiveNotificationResponse: (details) {
+      onDidReceiveNotificationResponse: (details) async {
         final action = details.actionId;
         if (action != null) {
           final activeProvider = FocusTimerProvider.activeInstance;
@@ -65,10 +68,45 @@ class NotificationService {
           } else {
             timerNotificationTapBackground(details);
           }
+        } else {
+          // Tap on notification body
+          final payload = details.payload;
+          if (payload != null) {
+            if (payload == 'focus_timer') {
+              AppNavigator.goToFocusTimer();
+            } else if (payload.startsWith('http://') || payload.startsWith('https://')) {
+              final uri = Uri.tryParse(payload);
+              if (uri != null) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            }
+          }
         }
       },
       onDidReceiveBackgroundNotificationResponse: timerNotificationTapBackground,
     );
+
+    // Handle app launch from notification tap
+    final launchDetails = await _notificationsPlugin.getNotificationAppLaunchDetails();
+    if (launchDetails != null && launchDetails.didNotificationLaunchApp) {
+      final response = launchDetails.notificationResponse;
+      if (response != null) {
+        final payload = response.payload;
+        if (payload != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            await Future.delayed(const Duration(milliseconds: 500));
+            if (payload == 'focus_timer') {
+              AppNavigator.goToFocusTimer();
+            } else if (payload.startsWith('http://') || payload.startsWith('https://')) {
+              final uri = Uri.tryParse(payload);
+              if (uri != null) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            }
+          });
+        }
+      }
+    }
   }
 
   Future<void> requestPermissions() async {
@@ -133,7 +171,19 @@ class NotificationService {
       scheduledDate: scheduledDate,
       notificationDetails: platformDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: _extractUrl(reminder.description) ?? _extractUrl(reminder.title),
     );
+  }
+
+  /// Extracts the first http/https URL from text
+  String? _extractUrl(String? text) {
+    if (text == null || text.isEmpty) return null;
+    final RegExp urlRegExp = RegExp(
+      r'https?://[a-zA-Z0-9\-._~:/?#\[\]@!$&()*+,;=%]+',
+      caseSensitive: false,
+    );
+    final match = urlRegExp.firstMatch(text);
+    return match?.group(0);
   }
 
   /// Cancels an active scheduled alarm
@@ -165,6 +215,7 @@ class NotificationService {
       title: title,
       body: body,
       notificationDetails: platformDetails,
+      payload: _extractUrl(body) ?? _extractUrl(title),
     );
   }
 }

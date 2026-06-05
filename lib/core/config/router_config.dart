@@ -8,6 +8,7 @@ import 'package:Reflections/features/home/pages/home_page.dart';
 import 'package:Reflections/features/splash/presentation/pages/splash_page.dart';
 import 'package:Reflections/routes/app_routes.dart';
 import 'package:Reflections/shared/models/note_model.dart';
+import 'package:Reflections/features/timer/presentation/pages/focus_timer_page.dart';
 
 class AppRouterConfig {
   static final GoRouter router = GoRouter(
@@ -53,6 +54,10 @@ class AppRouterConfig {
             },
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.focusTimer,
+        builder: (context, state) => const FocusTimerPage(),
       ),
     ],
   );

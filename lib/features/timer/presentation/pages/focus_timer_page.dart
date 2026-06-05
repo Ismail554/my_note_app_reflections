@@ -237,9 +237,9 @@ class _PomodoroTabState extends State<_PomodoroTab> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _modeButton('Focus', 25, timerProvider),
-              SizedBox(width: 8.w),
+              const SizedBox(width: 8),
               _modeButton('Short Break', 5, timerProvider),
-              SizedBox(width: 8.w),
+              const SizedBox(width: 8),
               _modeButton('Long Break', 15, timerProvider),
             ],
           ),

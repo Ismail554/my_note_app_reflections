@@ -114,6 +114,7 @@ Future<void> _updateNotificationStatic({
     title: title,
     body: body,
     notificationDetails: NotificationDetails(android: androidDetails, iOS: iosDetails),
+    payload: 'focus_timer',
   );
 }
 

@@ -25,6 +25,10 @@ class AppNavigator {
     _context?.push(AppRoutes.addNote, extra: note);
   }
 
+  static void goToFocusTimer() {
+    _context?.push(AppRoutes.focusTimer);
+  }
+
   static void goBack() {
     if (_context?.canPop() ?? false) {
       _context?.pop();
