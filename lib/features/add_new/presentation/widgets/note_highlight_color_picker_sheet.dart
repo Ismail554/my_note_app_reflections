@@ -16,6 +16,10 @@ class NoteHighlightColorPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final borderColor = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+
     final highlightColors = [
       {'name': 'Yellow', 'hex': 'yellow', 'color': const Color(0xFFFFF9C4)},
       {'name': 'Green', 'hex': 'green', 'color': const Color(0xFFC8E6C9)},
@@ -36,7 +40,7 @@ class NoteHighlightColorPickerSheet extends StatelessWidget {
           Text(
             'highlightColor'.tr,
             style: AppFontManager.headlineMedium.copyWith(
-              color: AppColors.textPrimary,
+              color: textPrimary,
             ),
           ),
           AppSpacing.h16,
@@ -63,7 +67,7 @@ class NoteHighlightColorPickerSheet extends StatelessWidget {
                       color: color,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppColors.divider,
+                        color: borderColor,
                         width: 1,
                       ),
                     ),

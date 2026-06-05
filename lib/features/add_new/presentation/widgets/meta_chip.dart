@@ -21,13 +21,15 @@ class MetaChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = hasCustomColor
-        ? Colors.black.withValues(alpha: 0.05)
+        ? (isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.black.withValues(alpha: 0.05))
         : (isDark
               ? AppColors.darkSurfaceVariant
               : AppColors.lightSurfaceVariant);
 
     final fg = hasCustomColor
-        ? AppColors.lightTextSecondary
+        ? (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)
         : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary);
 
     return Container(
@@ -37,7 +39,9 @@ class MetaChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
           color: hasCustomColor
-              ? Colors.black.withValues(alpha: 0.08)
+              ? (isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.08))
               : (isDark ? AppColors.darkDivider : AppColors.lightDivider),
           width: 0.8,
         ),

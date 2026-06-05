@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -374,9 +375,10 @@ class _AddNotePageState extends State<AddNotePage> {
   }
 
   void _showColorPicker() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
@@ -392,9 +394,10 @@ class _AddNotePageState extends State<AddNotePage> {
 
   void _showTextColorPicker() {
     final selection = _bodyController.selection;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
@@ -410,9 +413,10 @@ class _AddNotePageState extends State<AddNotePage> {
 
   void _showHighlightColorPicker() {
     final selection = _bodyController.selection;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
@@ -427,9 +431,10 @@ class _AddNotePageState extends State<AddNotePage> {
   }
 
   void _showTextSizePicker() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
@@ -503,10 +508,14 @@ class _AddNotePageState extends State<AddNotePage> {
             Navigator.of(context).pop();
           }
         },
-        child: Scaffold(
-          backgroundColor: canvasColor,
-          resizeToAvoidBottomInset: true,
-          body: SafeArea(
+        child: AnnotatedRegion<SystemUiOverlayStyle>(
+          value: customIsDark
+              ? SystemUiOverlayStyle.light
+              : SystemUiOverlayStyle.dark,
+          child: Scaffold(
+            backgroundColor: canvasColor,
+            resizeToAvoidBottomInset: true,
+            body: SafeArea(
             child: Column(
               children: [
                 // Top AppBar
@@ -524,7 +533,9 @@ class _AddNotePageState extends State<AddNotePage> {
                           height: 36.h,
                           decoration: BoxDecoration(
                             color: hasCustomColor
-                                ? Colors.black.withValues(alpha: 0.05)
+                                ? (customIsDark
+                                    ? Colors.white.withValues(alpha: 0.1)
+                                    : Colors.black.withValues(alpha: 0.06))
                                 : (isDark
                                       ? AppColors.darkSurfaceVariant
                                       : AppColors.lightSurfaceVariant),
@@ -675,7 +686,9 @@ class _AddNotePageState extends State<AddNotePage> {
                 Divider(
                   height: 1,
                   color: hasCustomColor
-                      ? Colors.black.withValues(alpha: 0.08)
+                      ? (customIsDark
+                          ? Colors.white.withValues(alpha: 0.12)
+                          : Colors.black.withValues(alpha: 0.08))
                       : (isDark
                             ? AppColors.darkDivider
                             : AppColors.lightDivider),
@@ -693,14 +706,14 @@ class _AddNotePageState extends State<AddNotePage> {
                         icon: Icons.calendar_today_outlined,
                         label: dateStr,
                         hasCustomColor: hasCustomColor,
-                        isDark: isDark,
+                        isDark: customIsDark,
                       ),
                       AppSpacing.w10,
                       MetaChip(
                         icon: Icons.folder_outlined,
                         label: _categoryName,
                         hasCustomColor: hasCustomColor,
-                        isDark: isDark,
+                        isDark: customIsDark,
                       ),
                     ],
                   ),
@@ -754,13 +767,18 @@ class _AddNotePageState extends State<AddNotePage> {
                                     hintStyle: AppFontManager.inputTitle
                                         .copyWith(color: hintColor),
                                     border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
                                     contentPadding: EdgeInsets.zero,
+                                    filled: false,
                                   ),
                                 ),
                           AppSpacing.h12,
                           Divider(
                             color: hasCustomColor
-                                ? Colors.black.withValues(alpha: 0.08)
+                                ? (customIsDark
+                                    ? Colors.white.withValues(alpha: 0.12)
+                                    : Colors.black.withValues(alpha: 0.08))
                                 : (isDark
                                       ? AppColors.darkDivider
                                       : AppColors.lightDivider),
@@ -852,6 +870,7 @@ class _AddNotePageState extends State<AddNotePage> {
                   currentNoteId: _currentNoteId,
                   hasCustomColor: hasCustomColor,
                   isDark: isDark,
+                  customIsDark: customIsDark,
                   bodyColor: bodyColor,
                   secondaryTextColor: secondaryTextColor,
                   onShowColorPicker: _showColorPicker,
@@ -863,6 +882,7 @@ class _AddNotePageState extends State<AddNotePage> {
               ],
             ),
           ),
+        ),
         ),
       ),
     );

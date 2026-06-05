@@ -17,6 +17,11 @@ class NoteColorPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final borderColor = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+    final defaultBg = isDark ? AppColors.darkBackground : AppColors.lightBackground;
+
     final colors = [
       {'name': 'Default', 'value': 0},
       {'name': 'Cream', 'value': 0xFFFDF6EC},
@@ -35,7 +40,7 @@ class NoteColorPickerSheet extends StatelessWidget {
           Text(
             'noteColor'.tr,
             style: AppFontManager.headlineMedium.copyWith(
-              color: AppColors.textPrimary,
+              color: textPrimary,
             ),
           ),
           AppSpacing.h16,
@@ -59,24 +64,30 @@ class NoteColorPickerSheet extends StatelessWidget {
                     width: 50.r,
                     height: 50.r,
                     decoration: BoxDecoration(
-                      color: value == 0
-                          ? AppColors.cardBackground
-                          : Color(value),
+                      color: value == 0 ? defaultBg : Color(value),
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: isSelected
-                            ? AppColors.primaryMedium
-                            : AppColors.divider,
+                            ? AppColors.primaryGreen
+                            : borderColor,
                         width: isSelected ? 2.5 : 1,
                       ),
                     ),
                     child: isSelected
                         ? Icon(
                             Icons.check,
-                            color: AppColors.primaryMedium,
+                            color: AppColors.primaryGreen,
                             size: 20.sp,
                           )
-                        : null,
+                        : value == 0
+                            ? Icon(
+                                Icons.format_color_reset_rounded,
+                                color: isDark
+                                    ? AppColors.darkTextMuted
+                                    : AppColors.lightTextMuted,
+                                size: 18.sp,
+                              )
+                            : null,
                   ),
                 );
               },

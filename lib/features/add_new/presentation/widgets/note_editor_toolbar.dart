@@ -12,6 +12,7 @@ class NoteEditorToolbar extends StatelessWidget {
   final String? currentNoteId;
   final bool hasCustomColor;
   final bool isDark;
+  final bool customIsDark;
   final Color bodyColor;
   final Color secondaryTextColor;
   
@@ -29,6 +30,7 @@ class NoteEditorToolbar extends StatelessWidget {
     required this.currentNoteId,
     required this.hasCustomColor,
     required this.isDark,
+    required this.customIsDark,
     required this.bodyColor,
     required this.secondaryTextColor,
     required this.onShowColorPicker,
@@ -44,12 +46,16 @@ class NoteEditorToolbar extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
       decoration: BoxDecoration(
         color: hasCustomColor
-            ? Colors.black.withValues(alpha: 0.03)
+            ? (customIsDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.03))
             : (isDark ? AppColors.darkSurface : AppColors.lightSurface),
         border: Border(
           top: BorderSide(
             color: hasCustomColor
-                ? Colors.black.withValues(alpha: 0.08)
+                ? (customIsDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.black.withValues(alpha: 0.08))
                 : AppColors.divider.withValues(alpha: 0.5),
             width: 0.5,
           ),
@@ -112,7 +118,9 @@ class NoteEditorToolbar extends StatelessWidget {
                   height: 20.h,
                   width: 1.w,
                   color: hasCustomColor
-                      ? Colors.black.withValues(alpha: 0.08)
+                      ? (customIsDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.black.withValues(alpha: 0.08))
                       : AppColors.divider,
                   margin: EdgeInsets.symmetric(horizontal: 4.w),
                 ),

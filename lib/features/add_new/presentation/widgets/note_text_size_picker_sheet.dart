@@ -31,6 +31,11 @@ class _NoteTextSizePickerSheetState extends State<NoteTextSizePickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final borderColor = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
       child: Column(
@@ -40,14 +45,14 @@ class _NoteTextSizePickerSheetState extends State<NoteTextSizePickerSheet> {
           Text(
             'textSizeScaling'.tr,
             style: AppFontManager.headlineMedium.copyWith(
-              color: AppColors.textPrimary,
+              color: textPrimary,
             ),
           ),
           AppSpacing.h16,
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('A', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+              Text('A', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold, color: textSecondary)),
               Expanded(
                 child: Slider(
                   value: _bodyFontSize,
@@ -55,7 +60,7 @@ class _NoteTextSizePickerSheetState extends State<NoteTextSizePickerSheet> {
                   max: 30.0,
                   divisions: 9,
                   activeColor: AppColors.primaryGreen,
-                  inactiveColor: AppColors.divider,
+                  inactiveColor: borderColor,
                   label: '${_bodyFontSize.toInt()} sp',
                   onChanged: (val) {
                     setState(() {
@@ -65,7 +70,7 @@ class _NoteTextSizePickerSheetState extends State<NoteTextSizePickerSheet> {
                   },
                 ),
               ),
-              Text('A', style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              Text('A', style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, color: textPrimary)),
             ],
           ),
           AppSpacing.h8,
@@ -74,6 +79,7 @@ class _NoteTextSizePickerSheetState extends State<NoteTextSizePickerSheet> {
               '${'previewLabel'.tr}: ${_bodyFontSize.toInt()} sp',
               style: AppFontManager.bodyMedium.copyWith(
                 fontSize: _bodyFontSize.sp,
+                color: textPrimary,
               ),
             ),
           ),

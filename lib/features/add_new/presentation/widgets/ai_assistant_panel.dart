@@ -6,54 +6,6 @@ import 'package:Reflections/core/theme/app_font_manager.dart';
 import 'package:Reflections/core/constants/app_constants.dart';
 import 'package:Reflections/core/services/gemini_service.dart';
 
-// ─── Word-level diff types ──────────────────────────────────────────────
-enum _DiffType { same, added, removed }
-
-class _DiffWord {
-  final String text;
-  final _DiffType type;
-  const _DiffWord(this.text, this.type);
-}
-
-/// Compute word-level diff using LCS (Longest Common Subsequence).
-List<_DiffWord> _computeWordDiff(String original, String modified) {
-  final oldWords = original.split(RegExp(r'\s+'));
-  final newWords = modified.split(RegExp(r'\s+'));
-  if (oldWords.length == 1 && oldWords[0].isEmpty) oldWords.clear();
-  if (newWords.length == 1 && newWords[0].isEmpty) newWords.clear();
-
-  final m = oldWords.length, n = newWords.length;
-  // Build LCS table
-  final dp = List.generate(m + 1, (_) => List.filled(n + 1, 0));
-  for (int i = 1; i <= m; i++) {
-    for (int j = 1; j <= n; j++) {
-      if (oldWords[i - 1] == newWords[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1] + 1;
-      } else {
-        dp[i][j] = dp[i - 1][j] > dp[i][j - 1] ? dp[i - 1][j] : dp[i][j - 1];
-      }
-    }
-  }
-
-  // Backtrack to build diff
-  final result = <_DiffWord>[];
-  int i = m, j = n;
-  while (i > 0 || j > 0) {
-    if (i > 0 && j > 0 && oldWords[i - 1] == newWords[j - 1]) {
-      result.add(_DiffWord(oldWords[i - 1], _DiffType.same));
-      i--;
-      j--;
-    } else if (j > 0 && (i == 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-      result.add(_DiffWord(newWords[j - 1], _DiffType.added));
-      j--;
-    } else {
-      result.add(_DiffWord(oldWords[i - 1], _DiffType.removed));
-      i--;
-    }
-  }
-  return result.reversed.toList();
-}
-
 // ─── Main Panel ─────────────────────────────────────────────────────────
 class AiAssistantPanel extends StatefulWidget {
   final TextEditingController titleController;
@@ -75,21 +27,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
   bool _isLoading = false;
   String _aiResult = '';
   String _selectedAction = '';
-  String _originalText = '';
   final _customController = TextEditingController();
   String? _customError;
-
-  // Actions that modify body text (eligible for diff view)
-  static const _bodyActions = {
-    'improve', 'pronounce', 'bullets', 'expand', 'summarize', 'formal', 'custom'
-  };
-
-  bool get _showDiff =>
-      _aiResult.isNotEmpty &&
-      !_isLoading &&
-      _bodyActions.contains(_selectedAction) &&
-      _selectedAction != 'summarize' &&
-      _selectedAction != 'bullets';
 
   Future<void> _triggerAction(String action) async {
     final body = widget.bodyController.text.trim();
@@ -114,7 +53,6 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
       _isLoading = true;
       _aiResult = '';
       _selectedAction = action;
-      _originalText = widget.bodyController.text;
     });
 
     String result = '';
@@ -173,7 +111,6 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
     setState(() {
       _aiResult = '';
       _selectedAction = '';
-      _originalText = '';
       _customError = null;
     });
   }
@@ -468,9 +405,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
           ),
           child: _isLoading
               ? _buildLoadingState(textSecondary)
-              : _showDiff
-                  ? _buildDiffView(textPrimary)
-                  : _buildPlainResult(textPrimary),
+              : _buildPlainResult(textPrimary),
         ),
         AppSpacing.h20,
 
@@ -534,44 +469,6 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
       child: Text(_aiResult,
         style: AppFontManager.bodyMedium.copyWith(
           color: textPrimary, height: 1.5,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDiffView(Color textPrimary) {
-    final diffs = _computeWordDiff(_originalText, _aiResult);
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: RichText(
-        text: TextSpan(
-          style: AppFontManager.bodyMedium.copyWith(
-            color: textPrimary, height: 1.6,
-          ),
-          children: diffs.map((d) {
-            switch (d.type) {
-              case _DiffType.removed:
-                return TextSpan(
-                  text: '${d.text} ',
-                  style: TextStyle(
-                    color: AppColors.error.withValues(alpha: 0.8),
-                    decoration: TextDecoration.lineThrough,
-                    decorationColor: AppColors.error,
-                  ),
-                );
-              case _DiffType.added:
-                return TextSpan(
-                  text: '${d.text} ',
-                  style: TextStyle(
-                    color: AppColors.success,
-                    backgroundColor: AppColors.success.withValues(alpha: 0.12),
-                    fontWeight: FontWeight.w500,
-                  ),
-                );
-              case _DiffType.same:
-                return TextSpan(text: '${d.text} ');
-            }
-          }).toList(),
         ),
       ),
     );
