@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:Reflections/core/theme/app_colors.dart';
 import 'package:Reflections/core/theme/app_font_manager.dart';
+import 'package:Reflections/features/timer/presentation/providers/focus_timer_provider.dart';
 import 'package:Reflections/features/habit/data/models/habit_model.dart';
 import 'package:Reflections/features/habit/state/habit_provider.dart';
+import 'package:Reflections/features/reminder/services/notification_service.dart';
 
 class FocusTimerPage extends StatefulWidget {
   final HabitModel? associatedHabit;
@@ -18,19 +19,29 @@ class FocusTimerPage extends StatefulWidget {
   State<FocusTimerPage> createState() => _FocusTimerPageState();
 }
 
-class _FocusTimerPageState extends State<FocusTimerPage> with SingleTickerProviderStateMixin {
+class _FocusTimerPageState extends State<FocusTimerPage> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    WidgetsBinding.instance.addObserver(this);
+    NotificationService.instance.requestPermissions();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      context.read<FocusTimerProvider>().loadStateFromPrefs();
+    }
   }
 
   @override
@@ -93,80 +104,40 @@ class _PomodoroTab extends StatefulWidget {
 }
 
 class _PomodoroTabState extends State<_PomodoroTab> {
-  Timer? _timer;
-  int _totalSeconds = 25 * 60;
-  int _secondsLeft = 25 * 60;
-  bool _isRunning = false;
-  String _mode = 'Focus'; // Focus, Short Break, Long Break
-  late final AudioPlayer _audioPlayer;
+  bool _dialogShown = false;
+  FocusTimerProvider? _timerProvider;
 
   @override
   void initState() {
     super.initState();
-    _audioPlayer = AudioPlayer();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _timerProvider = context.read<FocusTimerProvider>();
+      _timerProvider?.addListener(_onProviderChanged);
+    });
   }
 
-  void _startTimer() {
-    if (_isRunning) return;
-    HapticFeedback.lightImpact();
-    setState(() => _isRunning = true);
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_secondsLeft > 0) {
-        setState(() {
-          _secondsLeft--;
-        });
-      } else {
-        _timer?.cancel();
-        setState(() {
-          _isRunning = false;
-        });
-        _onTimerFinished();
+  @override
+  void dispose() {
+    _timerProvider?.removeListener(_onProviderChanged);
+    super.dispose();
+  }
+
+  void _onProviderChanged() {
+    final provider = _timerProvider;
+    if (provider == null) return;
+    if (!provider.isRunning && provider.secondsLeft == 0) {
+      if (mounted && !_dialogShown) {
+        setState(() => _dialogShown = true);
+        _showCompletionDialog(provider.mode);
       }
-    });
-  }
-
-  void _pauseTimer() {
-    HapticFeedback.lightImpact();
-    _timer?.cancel();
-    setState(() => _isRunning = false);
-  }
-
-  void _resetTimer() {
-    HapticFeedback.mediumImpact();
-    _timer?.cancel();
-    setState(() {
-      _isRunning = false;
-      _secondsLeft = _totalSeconds;
-    });
-  }
-
-  void _setPreset(String mode, int minutes) {
-    if (_isRunning) return;
-    HapticFeedback.selectionClick();
-    setState(() {
-      _mode = mode;
-      _totalSeconds = minutes * 60;
-      _secondsLeft = _totalSeconds;
-    });
-  }
-
-  void _onTimerFinished() async {
-    // Play completion success sound
-    try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource('sounds/success.mp3'));
-    } catch (e) {
-      debugPrint('Error playing success sound: $e');
+    } else if (provider.secondsLeft > 0) {
+      if (_dialogShown) {
+        setState(() => _dialogShown = false);
+      }
     }
+  }
 
-    // Alarm/vibration feedback sequence for the end of time
-    for (int i = 0; i < 3; i++) {
-      HapticFeedback.vibrate();
-      await Future.delayed(const Duration(milliseconds: 300));
-    }
-    
-    // Celebration sheet / dialogue
-    if (!mounted) return;
+  void _showCompletionDialog(String finishedMode) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -190,7 +161,7 @@ class _PomodoroTabState extends State<_PomodoroTab> {
           content: Text(
             widget.associatedHabit != null
                 ? 'Amazing focus session completed for "${widget.associatedHabit!.name}"! Mark it completed for today?'
-                : 'Congratulations! You completed your ${_mode.toLowerCase()} session. Take a moment to celebrate!',
+                : 'Congratulations! You completed your ${finishedMode.toLowerCase()} session. Take a moment to celebrate!',
             style: AppFontManager.bodyMedium.copyWith(
               color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
             ),
@@ -249,19 +220,12 @@ class _PomodoroTabState extends State<_PomodoroTab> {
   }
 
   @override
-  void dispose() {
-    _timer?.cancel();
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryTextColor = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
     final secondaryTextColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
-    final progress = _totalSeconds > 0 ? _secondsLeft / _totalSeconds : 1.0;
+    final timerProvider = context.watch<FocusTimerProvider>();
 
     return Padding(
       padding: EdgeInsets.all(24.r),
@@ -272,11 +236,11 @@ class _PomodoroTabState extends State<_PomodoroTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _modeButton('Focus', 25),
+              _modeButton('Focus', 25, timerProvider),
               SizedBox(width: 8.w),
-              _modeButton('Short Break', 5),
+              _modeButton('Short Break', 5, timerProvider),
               SizedBox(width: 8.w),
-              _modeButton('Long Break', 15),
+              _modeButton('Long Break', 15, timerProvider),
             ],
           ),
 
@@ -288,7 +252,7 @@ class _PomodoroTabState extends State<_PomodoroTab> {
                 width: 220.r,
                 height: 220.r,
                 child: CircularProgressIndicator(
-                  value: progress,
+                  value: timerProvider.progress,
                   strokeWidth: 10.r,
                   backgroundColor: isDark 
                       ? Colors.white.withValues(alpha: 0.06) 
@@ -300,7 +264,7 @@ class _PomodoroTabState extends State<_PomodoroTab> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _formatTime(_secondsLeft),
+                    _formatTime(timerProvider.secondsLeft),
                     style: AppFontManager.displayLarge.copyWith(
                       fontSize: 48.sp,
                       color: primaryTextColor,
@@ -309,11 +273,61 @@ class _PomodoroTabState extends State<_PomodoroTab> {
                   ),
                   SizedBox(height: 4.h),
                   Text(
-                    _mode.toUpperCase(),
+                    timerProvider.mode.toUpperCase(),
                     style: AppFontManager.labelMedium.copyWith(
                       color: AppColors.accent,
                       letterSpacing: 1.5,
                       fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  GestureDetector(
+                    onTap: () {
+                      timerProvider.toggleSound();
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                      decoration: BoxDecoration(
+                        color: timerProvider.isSoundEnabled
+                            ? AppColors.accent.withValues(alpha: 0.1)
+                            : (isDark
+                                ? Colors.white.withValues(alpha: 0.04)
+                                : Colors.black.withValues(alpha: 0.04)),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: timerProvider.isSoundEnabled
+                              ? AppColors.accent.withValues(alpha: 0.3)
+                              : (isDark ? AppColors.darkDivider : AppColors.lightDivider),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            timerProvider.isSoundEnabled
+                                ? Icons.volume_up_rounded
+                                : Icons.volume_off_rounded,
+                            color: timerProvider.isSoundEnabled
+                                ? AppColors.accent
+                                : secondaryTextColor,
+                            size: 14.sp,
+                          ),
+                          SizedBox(width: 4.w),
+                          Text(
+                            timerProvider.isSoundEnabled ? 'SOUND ON' : 'MUTE',
+                            style: AppFontManager.caption.copyWith(
+                              color: timerProvider.isSoundEnabled
+                                  ? AppColors.accent
+                                  : secondaryTextColor,
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -322,37 +336,23 @@ class _PomodoroTabState extends State<_PomodoroTab> {
           ),
 
           // ─── Timer Custom adjust buttons ──────────────────────────
-          if (!_isRunning)
+          if (!timerProvider.isRunning)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    setState(() {
-                      if (_totalSeconds > 60) {
-                        _totalSeconds -= 60;
-                        _secondsLeft = _totalSeconds;
-                      }
-                    });
-                  },
+                  onPressed: () => timerProvider.adjustTime(-60),
                   icon: Icon(Icons.remove_circle_outline_rounded, color: secondaryTextColor, size: 28.sp),
                 ),
                 Text(
-                  '${_totalSeconds ~/ 60} min',
+                  '${timerProvider.totalSeconds ~/ 60} min',
                   style: AppFontManager.headingMedium.copyWith(
                     color: primaryTextColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 IconButton(
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    setState(() {
-                      _totalSeconds += 60;
-                      _secondsLeft = _totalSeconds;
-                    });
-                  },
+                  onPressed: () => timerProvider.adjustTime(60),
                   icon: Icon(Icons.add_circle_outline_rounded, color: secondaryTextColor, size: 28.sp),
                 ),
               ],
@@ -367,15 +367,15 @@ class _PomodoroTabState extends State<_PomodoroTab> {
               // Reset
               _controlCircleButton(
                 icon: Icons.replay_rounded,
-                onTap: _resetTimer,
+                onTap: timerProvider.resetTimer,
                 color: isDark ? AppColors.darkSurfaceVariant : Colors.black.withValues(alpha: 0.05),
                 iconColor: primaryTextColor,
               ),
               SizedBox(width: 24.w),
               // Play/Pause
               _controlCircleButton(
-                icon: _isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                onTap: _isRunning ? _pauseTimer : _startTimer,
+                icon: timerProvider.isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                onTap: timerProvider.isRunning ? timerProvider.pauseTimer : timerProvider.startTimer,
                 color: AppColors.accent,
                 iconColor: AppColors.white,
                 size: 64.r,
@@ -387,10 +387,10 @@ class _PomodoroTabState extends State<_PomodoroTab> {
                 icon: Icons.skip_next_rounded,
                 onTap: () {
                   HapticFeedback.mediumImpact();
-                  if (_mode == 'Focus') {
-                    _setPreset('Short Break', 5);
+                  if (timerProvider.mode == 'Focus') {
+                    timerProvider.setMode('Short Break', 5);
                   } else {
-                    _setPreset('Focus', 25);
+                    timerProvider.setMode('Focus', 25);
                   }
                 },
                 color: isDark ? AppColors.darkSurfaceVariant : Colors.black.withValues(alpha: 0.05),
@@ -403,12 +403,16 @@ class _PomodoroTabState extends State<_PomodoroTab> {
     );
   }
 
-  Widget _modeButton(String title, int minutes) {
-    final isSelected = _mode == title;
+  Widget _modeButton(String title, int minutes, FocusTimerProvider timerProvider) {
+    final isSelected = timerProvider.mode == title;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
-      onTap: () => _setPreset(title, minutes),
+      onTap: () {
+        if (!timerProvider.isRunning) {
+          timerProvider.setMode(title, minutes);
+        }
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
@@ -474,15 +478,11 @@ class _StopwatchTabState extends State<_StopwatchTab> {
   int _milliseconds = 0;
   bool _isRunning = false;
   final List<String> _laps = [];
-  late final AudioPlayer _audioPlayer;
   int _lastTickedSecond = 0;
 
   @override
   void initState() {
     super.initState();
-    _audioPlayer = AudioPlayer();
-    // Configure low latency sound mode if supported by platform
-    _audioPlayer.setReleaseMode(ReleaseMode.stop);
   }
 
   void _startStopwatch() {
@@ -495,20 +495,10 @@ class _StopwatchTabState extends State<_StopwatchTab> {
         final currentSecond = _milliseconds ~/ 1000;
         if (currentSecond > _lastTickedSecond) {
           _lastTickedSecond = currentSecond;
-          _playTick();
+          HapticFeedback.lightImpact();
         }
       });
     });
-  }
-
-  void _playTick() async {
-    try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource('sounds/tick.mp3'));
-      HapticFeedback.lightImpact();
-    } catch (e) {
-      debugPrint('Error playing tick: $e');
-    }
   }
 
   void _pauseStopwatch() {
@@ -546,7 +536,6 @@ class _StopwatchTabState extends State<_StopwatchTab> {
   @override
   void dispose() {
     _timer?.cancel();
-    _audioPlayer.dispose();
     super.dispose();
   }
 

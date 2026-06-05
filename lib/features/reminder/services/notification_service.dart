@@ -2,6 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:Reflections/features/reminder/data/models/reminder_model.dart';
+import 'package:Reflections/features/timer/presentation/providers/focus_timer_provider.dart';
 
 class NotificationService {
   NotificationService._internal();
@@ -16,16 +17,32 @@ class NotificationService {
 
     // 2. Android Settings
     const androidInitSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('ic_notification');
 
     // 3. iOS/Darwin Settings
-    const darwinInitSettings = DarwinInitializationSettings(
+    final darwinInitSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
+      notificationCategories: <DarwinNotificationCategory>[
+        DarwinNotificationCategory(
+          'focus_timer_category',
+          actions: <DarwinNotificationAction>[
+            DarwinNotificationAction.plain('pause', 'Pause'),
+            DarwinNotificationAction.plain('resume', 'Resume'),
+            DarwinNotificationAction.plain(
+              'stop',
+              'Stop',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.destructive,
+              },
+            ),
+          ],
+        ),
+      ],
     );
 
-    const initSettings = InitializationSettings(
+    final initSettings = InitializationSettings(
       android: androidInitSettings,
       iOS: darwinInitSettings,
     );
@@ -34,8 +51,23 @@ class NotificationService {
     await _notificationsPlugin.initialize(
       settings: initSettings,
       onDidReceiveNotificationResponse: (details) {
-        // Handle notification click action if needed
+        final action = details.actionId;
+        if (action != null) {
+          final activeProvider = FocusTimerProvider.activeInstance;
+          if (activeProvider != null) {
+            if (action == 'pause') {
+              activeProvider.pauseTimer();
+            } else if (action == 'resume') {
+              activeProvider.startTimer();
+            } else if (action == 'stop') {
+              activeProvider.resetTimer();
+            }
+          } else {
+            timerNotificationTapBackground(details);
+          }
+        }
       },
+      onDidReceiveBackgroundNotificationResponse: timerNotificationTapBackground,
     );
   }
 

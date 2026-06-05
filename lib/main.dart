@@ -11,6 +11,7 @@ import 'package:Reflections/core/providers/register_provider.dart';
 import 'package:Reflections/core/providers/search_provider.dart';
 import 'package:Reflections/core/providers/settings_provider.dart';
 import 'package:Reflections/core/providers/splash_provider.dart';
+import 'package:Reflections/features/timer/presentation/providers/focus_timer_provider.dart';
 import 'package:Reflections/firebase_options.dart';
 import 'package:Reflections/features/todo/state/todo_provider.dart';
 import 'package:Reflections/features/habit/state/habit_provider.dart';
@@ -41,6 +42,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => HabitProvider()),
         ChangeNotifierProvider(create: (_) => ReminderProvider()),
         ChangeNotifierProvider(create: (_) => AnalyticsProvider()),
+        ChangeNotifierProvider(create: (_) => FocusTimerProvider()),
       ],
       child: const MyApp(),
     ),
