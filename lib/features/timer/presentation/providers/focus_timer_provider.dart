@@ -89,6 +89,7 @@ Future<void> _updateNotificationStatic({
     when: targetTime?.millisecondsSinceEpoch,
     icon: 'ic_notification',
     largeIcon: const DrawableResourceAndroidBitmap('launcher_icon'),
+    styleInformation: const MediaStyleInformation(),
     actions: [
       AndroidNotificationAction(
         isRunning ? 'pause' : 'resume',
