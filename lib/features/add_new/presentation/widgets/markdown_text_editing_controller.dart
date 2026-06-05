@@ -14,6 +14,107 @@ class MarkdownTextEditingController extends TextEditingController {
   });
 
   @override
+  set value(TextEditingValue newValue) {
+    final oldText = text;
+    final newText = newValue.text;
+    final oldSelection = selection;
+    final newSelection = newValue.selection;
+
+    // Detect if a single newline '\n' was just inserted
+    if (newText.length == oldText.length + 1 &&
+        newSelection.isCollapsed &&
+        newSelection.start > 0 &&
+        newText[newSelection.start - 1] == '\n') {
+      
+      final insertIndex = newSelection.start - 1;
+      
+      // Find the start of the previous line
+      int lineStart = insertIndex - 1;
+      while (lineStart >= 0 && newText[lineStart] != '\n') {
+        lineStart--;
+      }
+      lineStart = lineStart + 1;
+      
+      final previousLine = newText.substring(lineStart, insertIndex);
+      
+      String? prefixToInsert;
+      
+      // 1. Checklist Items
+      if (previousLine.startsWith('- [ ] ') ||
+          previousLine.startsWith('- [x] ') ||
+          previousLine.startsWith('- [X] ')) {
+        final isChecked = previousLine.startsWith('- [x] ') || previousLine.startsWith('- [X] ');
+        final prefix = isChecked ? (previousLine.startsWith('- [x] ') ? '- [x] ' : '- [X] ') : '- [ ] ';
+        
+        if (previousLine.trim() == '- [ ]' ||
+            previousLine.trim() == '- [x]' ||
+            previousLine.trim() == '- [X]') {
+          // Empty checklist item: Clear the checklist prefix and start a clean line
+          final clearedText = oldText.replaceRange(lineStart, oldSelection.start, '');
+          super.value = TextEditingValue(
+            text: clearedText.substring(0, lineStart) + '\n' + clearedText.substring(lineStart),
+            selection: TextSelection.collapsed(offset: lineStart + 1),
+          );
+          return;
+        } else {
+          // Auto-continue checklist (default to unchecked new item)
+          prefixToInsert = '- [ ] ';
+        }
+      }
+      // 2. Bullet Items
+      else if (previousLine.startsWith('- ') || previousLine.startsWith('* ')) {
+        final bulletChar = previousLine.startsWith('- ') ? '- ' : '* ';
+        if (previousLine.trim() == '-' || previousLine.trim() == '*') {
+          // Empty bullet item: Clear the bullet prefix and start a clean line
+          final clearedText = oldText.replaceRange(lineStart, oldSelection.start, '');
+          super.value = TextEditingValue(
+            text: clearedText.substring(0, lineStart) + '\n' + clearedText.substring(lineStart),
+            selection: TextSelection.collapsed(offset: lineStart + 1),
+          );
+          return;
+        } else {
+          prefixToInsert = bulletChar;
+        }
+      }
+      // 3. Numbered Items
+      else {
+        final match = RegExp(r'^(\d+)\.\s').firstMatch(previousLine);
+        if (match != null) {
+          final prefixText = match.group(0)!;
+          final numText = match.group(1)!;
+          if (previousLine.trim() == '$numText.') {
+            // Empty numbered item: Clear the numbered prefix and start a clean line
+            final clearedText = oldText.replaceRange(lineStart, oldSelection.start, '');
+            super.value = TextEditingValue(
+              text: clearedText.substring(0, lineStart) + '\n' + clearedText.substring(lineStart),
+              selection: TextSelection.collapsed(offset: lineStart + 1),
+            );
+            return;
+          } else {
+            final currentNum = int.parse(numText);
+            prefixToInsert = '${currentNum + 1}. ';
+          }
+        }
+      }
+      
+      if (prefixToInsert != null) {
+        final modifiedText = newText.replaceRange(
+          newSelection.start,
+          newSelection.start,
+          prefixToInsert,
+        );
+        super.value = TextEditingValue(
+          text: modifiedText,
+          selection: TextSelection.collapsed(offset: newSelection.start + prefixToInsert.length),
+        );
+        return;
+      }
+    }
+
+    super.value = newValue;
+  }
+
+  @override
   TextSpan buildTextSpan({
     required BuildContext context,
     TextStyle? style,
