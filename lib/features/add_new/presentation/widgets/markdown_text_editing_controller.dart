@@ -8,6 +8,20 @@ import 'package:Reflections/core/theme/app_colors.dart';
 class MarkdownTextEditingController extends TextEditingController {
   final ValueGetter<Color> getTextColor;
 
+  // Cache RegExp compiled pattern at class level to avoid compilation overhead on every keystroke
+  static final RegExp _numberedListRegex = RegExp(r'(\d+)\. ');
+
+  // Reuse a single const TextStyle for tags to save heap allocations and GC cycles
+  static const TextStyle _cachedTagStyle = TextStyle(
+    color: Colors.transparent,
+    fontSize: 0.01,
+    letterSpacing: -2.0,
+    fontWeight: FontWeight.normal,
+    fontStyle: FontStyle.normal,
+    decoration: TextDecoration.none,
+    backgroundColor: Colors.transparent,
+  );
+
   MarkdownTextEditingController({
     super.text,
     required this.getTextColor,
@@ -43,16 +57,13 @@ class MarkdownTextEditingController extends TextEditingController {
       if (previousLine.startsWith('- [ ] ') ||
           previousLine.startsWith('- [x] ') ||
           previousLine.startsWith('- [X] ')) {
-        final isChecked = previousLine.startsWith('- [x] ') || previousLine.startsWith('- [X] ');
-        final prefix = isChecked ? (previousLine.startsWith('- [x] ') ? '- [x] ' : '- [X] ') : '- [ ] ';
-        
         if (previousLine.trim() == '- [ ]' ||
             previousLine.trim() == '- [x]' ||
             previousLine.trim() == '- [X]') {
           // Empty checklist item: Clear the checklist prefix and start a clean line
           final clearedText = oldText.replaceRange(lineStart, oldSelection.start, '');
           super.value = TextEditingValue(
-            text: clearedText.substring(0, lineStart) + '\n' + clearedText.substring(lineStart),
+            text: '${clearedText.substring(0, lineStart)}\n${clearedText.substring(lineStart)}',
             selection: TextSelection.collapsed(offset: lineStart + 1),
           );
           return;
@@ -68,7 +79,7 @@ class MarkdownTextEditingController extends TextEditingController {
           // Empty bullet item: Clear the bullet prefix and start a clean line
           final clearedText = oldText.replaceRange(lineStart, oldSelection.start, '');
           super.value = TextEditingValue(
-            text: clearedText.substring(0, lineStart) + '\n' + clearedText.substring(lineStart),
+            text: '${clearedText.substring(0, lineStart)}\n${clearedText.substring(lineStart)}',
             selection: TextSelection.collapsed(offset: lineStart + 1),
           );
           return;
@@ -78,15 +89,14 @@ class MarkdownTextEditingController extends TextEditingController {
       }
       // 3. Numbered Items
       else {
-        final match = RegExp(r'^(\d+)\.\s').firstMatch(previousLine);
-        if (match != null) {
-          final prefixText = match.group(0)!;
+        final match = _numberedListRegex.firstMatch(previousLine);
+        if (match != null && match.start == 0) {
           final numText = match.group(1)!;
           if (previousLine.trim() == '$numText.') {
             // Empty numbered item: Clear the numbered prefix and start a clean line
             final clearedText = oldText.replaceRange(lineStart, oldSelection.start, '');
             super.value = TextEditingValue(
-              text: clearedText.substring(0, lineStart) + '\n' + clearedText.substring(lineStart),
+              text: '${clearedText.substring(0, lineStart)}\n${clearedText.substring(lineStart)}',
               selection: TextSelection.collapsed(offset: lineStart + 1),
             );
             return;
@@ -136,34 +146,19 @@ class MarkdownTextEditingController extends TextEditingController {
       }
     }
 
-    // A helper to style helper tags so they are completely invisible.
-    TextStyle tagStyle(TextStyle base) => const TextStyle(
-          color: Colors.transparent,
-          fontSize: 0.01,
-          letterSpacing: -2.0,
-          fontWeight: FontWeight.normal,
-          fontStyle: FontStyle.normal,
-          decoration: TextDecoration.none,
-          backgroundColor: Colors.transparent,
-        );
-
     bool isDigit(String char) => '0123456789'.contains(char);
 
     while (index < rawText.length) {
       final isStartOfLine = index == 0 || rawText[index - 1] == '\n';
-      final endOfLine = rawText.indexOf('\n', index);
-      final searchLimit = endOfLine == -1 ? rawText.length : endOfLine;
 
       // A. Checklist Item: "- [ ] " or "- [x] "
       // Render "- [ ] " / "- [x] " as dim prefix, then content normally.
-      // NO duplication — raw chars render as themselves.
       if (isStartOfLine &&
           (rawText.startsWith('- [ ] ', index) ||
            rawText.startsWith('- [x] ', index) ||
            rawText.startsWith('- [X] ', index))) {
         flushPlain();
         final isChecked = rawText.startsWith('- [x] ', index) || rawText.startsWith('- [X] ', index);
-        // Render the raw prefix chars visibly (dim), keeping cursor 1:1 with raw text
         spans.add(TextSpan(
           text: rawText.substring(index, index + 6),
           style: baseStyle.copyWith(
@@ -177,7 +172,6 @@ class MarkdownTextEditingController extends TextEditingController {
       }
 
       // B. Bullet Item: "- " or "* "
-      // Render raw prefix chars as dim bullet marker — no ghost chars.
       if (isStartOfLine &&
           (rawText.startsWith('- ', index) || rawText.startsWith('* ', index))) {
         flushPlain();
@@ -193,8 +187,7 @@ class MarkdownTextEditingController extends TextEditingController {
       }
 
       // C. Numbered Item: e.g. "1. " at the start of a line
-      // Render raw "1. " as styled prefix — no duplication.
-      if (isStartOfLine) {
+      if (isStartOfLine && isDigit(rawText[index])) {
         int searchIdx = index;
         while (searchIdx < rawText.length && isDigit(rawText[searchIdx])) {
           searchIdx++;
@@ -216,27 +209,31 @@ class MarkdownTextEditingController extends TextEditingController {
 
       // D. Bold "**"
       if (rawText.startsWith('**', index)) {
+        final endOfLine = rawText.indexOf('\n', index);
+        final searchLimit = endOfLine == -1 ? rawText.length : endOfLine;
         final closingIndex = rawText.indexOf('**', index + 2);
         if (closingIndex != -1 && closingIndex < searchLimit) {
           flushPlain();
-          spans.add(TextSpan(text: '**', style: tagStyle(baseStyle)));
+          spans.add(const TextSpan(text: '**', style: _cachedTagStyle));
           final boldText = rawText.substring(index + 2, closingIndex);
           spans.add(TextSpan(
             text: boldText,
             style: baseStyle.copyWith(fontWeight: FontWeight.bold),
           ));
-          spans.add(TextSpan(text: '**', style: tagStyle(baseStyle)));
+          spans.add(const TextSpan(text: '**', style: _cachedTagStyle));
           index = closingIndex + 2;
           continue;
         }
       }
 
-      // E. Highlight "==" or "<mark>" / "<mark=color>"
+      // E. Highlight "=="
       if (rawText.startsWith('==', index)) {
+        final endOfLine = rawText.indexOf('\n', index);
+        final searchLimit = endOfLine == -1 ? rawText.length : endOfLine;
         final closingIndex = rawText.indexOf('==', index + 2);
         if (closingIndex != -1 && closingIndex < searchLimit) {
           flushPlain();
-          spans.add(TextSpan(text: '==', style: tagStyle(baseStyle)));
+          spans.add(const TextSpan(text: '==', style: _cachedTagStyle));
           final highlightedText = rawText.substring(index + 2, closingIndex);
           spans.add(TextSpan(
             text: highlightedText,
@@ -245,13 +242,16 @@ class MarkdownTextEditingController extends TextEditingController {
               color: Colors.black87,
             ),
           ));
-          spans.add(TextSpan(text: '==', style: tagStyle(baseStyle)));
+          spans.add(const TextSpan(text: '==', style: _cachedTagStyle));
           index = closingIndex + 2;
           continue;
         }
       }
 
+      // Highlight with <mark> tags
       if (rawText.startsWith('<mark', index)) {
+        final endOfLine = rawText.indexOf('\n', index);
+        final searchLimit = endOfLine == -1 ? rawText.length : endOfLine;
         final closingIndex = rawText.indexOf('>', index + 5);
         if (closingIndex != -1 && closingIndex < searchLimit) {
           final markAttr = rawText.startsWith('<mark=', index)
@@ -301,7 +301,7 @@ class MarkdownTextEditingController extends TextEditingController {
               }
             } catch (_) {}
 
-            spans.add(TextSpan(text: '<mark=$markAttr>', style: tagStyle(baseStyle)));
+            spans.add(TextSpan(text: '<mark=$markAttr>', style: _cachedTagStyle));
             spans.add(TextSpan(
               text: highlightedText,
               style: baseStyle.copyWith(
@@ -309,7 +309,7 @@ class MarkdownTextEditingController extends TextEditingController {
                 color: Colors.black87,
               ),
             ));
-            spans.add(TextSpan(text: '</mark>', style: tagStyle(baseStyle)));
+            spans.add(const TextSpan(text: '</mark>', style: _cachedTagStyle));
             index = endTagIndex + 7;
             continue;
           }
@@ -318,16 +318,18 @@ class MarkdownTextEditingController extends TextEditingController {
 
       // F. Underline "<u>"
       if (rawText.startsWith('<u>', index)) {
+        final endOfLine = rawText.indexOf('\n', index);
+        final searchLimit = endOfLine == -1 ? rawText.length : endOfLine;
         final closingIndex = rawText.indexOf('</u>', index + 3);
         if (closingIndex != -1 && closingIndex < searchLimit) {
           flushPlain();
-          spans.add(TextSpan(text: '<u>', style: tagStyle(baseStyle)));
+          spans.add(const TextSpan(text: '<u>', style: _cachedTagStyle));
           final underlinedText = rawText.substring(index + 3, closingIndex);
           spans.add(TextSpan(
             text: underlinedText,
             style: baseStyle.copyWith(decoration: TextDecoration.underline),
           ));
-          spans.add(TextSpan(text: '</u>', style: tagStyle(baseStyle)));
+          spans.add(const TextSpan(text: '</u>', style: _cachedTagStyle));
           index = closingIndex + 4;
           continue;
         }
@@ -335,6 +337,8 @@ class MarkdownTextEditingController extends TextEditingController {
 
       // G. Color "<color="
       if (rawText.startsWith('<color=', index)) {
+        final endOfLine = rawText.indexOf('\n', index);
+        final searchLimit = endOfLine == -1 ? rawText.length : endOfLine;
         final closingIndex = rawText.indexOf('>', index + 7);
         if (closingIndex != -1 && closingIndex < searchLimit) {
           final colorAttr = rawText.substring(index + 7, closingIndex);
@@ -382,12 +386,12 @@ class MarkdownTextEditingController extends TextEditingController {
               }
             } catch (_) {}
 
-            spans.add(TextSpan(text: '<color=$colorAttr>', style: tagStyle(baseStyle)));
+            spans.add(TextSpan(text: '<color=$colorAttr>', style: _cachedTagStyle));
             spans.add(TextSpan(
               text: coloredText,
               style: baseStyle.copyWith(color: parsedColor),
             ));
-            spans.add(TextSpan(text: '</color>', style: tagStyle(baseStyle)));
+            spans.add(const TextSpan(text: '</color>', style: _cachedTagStyle));
             index = endTagIndex + 8;
             continue;
           }
@@ -396,16 +400,18 @@ class MarkdownTextEditingController extends TextEditingController {
 
       // H. Italic "*"
       if (rawText.startsWith('*', index)) {
+        final endOfLine = rawText.indexOf('\n', index);
+        final searchLimit = endOfLine == -1 ? rawText.length : endOfLine;
         final closingIndex = rawText.indexOf('*', index + 1);
         if (closingIndex != -1 && closingIndex < searchLimit) {
           flushPlain();
-          spans.add(TextSpan(text: '*', style: tagStyle(baseStyle)));
+          spans.add(const TextSpan(text: '*', style: _cachedTagStyle));
           final italicText = rawText.substring(index + 1, closingIndex);
           spans.add(TextSpan(
             text: italicText,
             style: baseStyle.copyWith(fontStyle: FontStyle.italic),
           ));
-          spans.add(TextSpan(text: '*', style: tagStyle(baseStyle)));
+          spans.add(const TextSpan(text: '*', style: _cachedTagStyle));
           index = closingIndex + 1;
           continue;
         }
@@ -418,7 +424,6 @@ class MarkdownTextEditingController extends TextEditingController {
         final lineLen = endOfLine == -1 ? rawText.length - (index + 3) : endOfLine - (index + 3);
         final headerText = rawText.substring(index + 3, index + 3 + lineLen);
         final headerFontSize = baseStyle.fontSize != null ? baseStyle.fontSize! * 1.15 : 17.sp;
-        // Render "## " prefix visible but dim (cursor stays 1:1 with raw text)
         spans.add(TextSpan(
           text: '## ',
           style: baseStyle.copyWith(
@@ -438,13 +443,13 @@ class MarkdownTextEditingController extends TextEditingController {
         continue;
       }
 
+      // Header "# "
       if (isStartOfLine && rawText.startsWith('# ', index)) {
         flushPlain();
         final endOfLine = rawText.indexOf('\n', index + 2);
         final lineLen = endOfLine == -1 ? rawText.length - (index + 2) : endOfLine - (index + 2);
         final headerText = rawText.substring(index + 2, index + 2 + lineLen);
         final headerFontSize = baseStyle.fontSize != null ? baseStyle.fontSize! * 1.35 : 20.sp;
-        // Render "# " prefix visible but dim (cursor stays 1:1 with raw text)
         spans.add(TextSpan(
           text: '# ',
           style: baseStyle.copyWith(

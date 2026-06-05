@@ -310,7 +310,7 @@ class _AddNotePageState extends State<AddNotePage> {
             prefix == '- ' ||
             prefix == '* ' ||
             prefix.startsWith('- [') ||
-            RegExp(r'^\d+\.\s$').hasMatch(prefix));
+            RegExp(r'^\d+\. $').hasMatch(prefix));
 
     if (isLinePrefix) {
       // Find start of current line
@@ -321,7 +321,7 @@ class _AddNotePageState extends State<AddNotePage> {
 
       // Define a regex that matches any known line prefix
       final prefixRegex = RegExp(
-        r'^(##\s|#\s|-\s|\*\s|-\s\[\s\]\s|-\s\[x\]\s|-\s\[X\]\s|\d+\.\s)',
+        r'^(## |# |- |\* |- \[\s\] |- \[x\] |- \[X\] |\d+\. )',
       );
       final match = prefixRegex.firstMatch(lineText);
 

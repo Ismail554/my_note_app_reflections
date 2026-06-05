@@ -105,6 +105,68 @@ void main() {
       expect(redSpans, isNotEmpty);
       expect(redSpans.first.toPlainText(), equals('red text'));
     });
+
+    test('auto-continues checklists on newline', () {
+      controller.value = const TextEditingValue(
+        text: '- [ ] Item 1',
+        selection: TextSelection.collapsed(offset: 12),
+      );
+      
+      // Simulate typing '\n' at the end of the text
+      controller.value = const TextEditingValue(
+        text: '- [ ] Item 1\n',
+        selection: TextSelection.collapsed(offset: 13),
+      );
+
+      expect(controller.text, equals('- [ ] Item 1\n- [ ] '));
+      expect(controller.selection.start, equals(19));
+    });
+
+    test('auto-clears checklist on newline if empty', () {
+      controller.value = const TextEditingValue(
+        text: '- [ ] ',
+        selection: TextSelection.collapsed(offset: 6),
+      );
+      
+      // Simulate typing '\n' when empty checklist item
+      controller.value = const TextEditingValue(
+        text: '- [ ] \n',
+        selection: TextSelection.collapsed(offset: 7),
+      );
+
+      expect(controller.text, equals('\n'));
+      expect(controller.selection.start, equals(1));
+    });
+
+    test('auto-continues bullets on newline', () {
+      controller.value = const TextEditingValue(
+        text: '- Item 1',
+        selection: TextSelection.collapsed(offset: 8),
+      );
+      
+      controller.value = const TextEditingValue(
+        text: '- Item 1\n',
+        selection: TextSelection.collapsed(offset: 9),
+      );
+
+      expect(controller.text, equals('- Item 1\n- '));
+      expect(controller.selection.start, equals(11));
+    });
+
+    test('auto-continues numbered lists and increments number on newline', () {
+      controller.value = const TextEditingValue(
+        text: '1. Hello',
+        selection: TextSelection.collapsed(offset: 8),
+      );
+      
+      controller.value = const TextEditingValue(
+        text: '1. Hello\n',
+        selection: TextSelection.collapsed(offset: 9),
+      );
+
+      expect(controller.text, equals('1. Hello\n2. '));
+      expect(controller.selection.start, equals(12));
+    });
   });
 }
 
