@@ -49,7 +49,6 @@ class GeminiService {
         }
         return 'No response received from AI.';
       } else {
-        print('Gemini API Error (${response.statusCode}): ${response.body}');
         try {
           final errorData = jsonDecode(response.body);
           final errorMessage = errorData['error']?['message'] as String?;
@@ -64,18 +63,83 @@ class GeminiService {
     }
   }
 
+  /// Proofread, correct grammar/spelling, and improve flow.
   Future<String> improveText(String text) async {
-    final prompt = 'You are a professional editor. Please proofread, correct spelling/grammar, and improve the flow of this note content. Keep the formatting clean and maintain the original tone. Return ONLY the improved note text without any introductory remarks or explanations:\n\n$text';
+    final prompt =
+        'You are a professional editor. Please proofread, correct spelling/grammar, '
+        'and improve the flow of this note content. Keep the formatting clean and '
+        'maintain the original tone. Return ONLY the improved note text without any '
+        'introductory remarks or explanations:\n\n$text';
     return await _callGemini(prompt);
   }
 
+  /// Suggest a concise, engaging title.
   Future<String> suggestTitle(String title, String body) async {
-    final prompt = 'Suggest a single concise, engaging, and premium title (maximum 6 words) for a note with this title suggestion "$title" and this body text:\n\n$body\n\nReturn ONLY the suggested title, no punctuation quotes, no explanations:';
+    final prompt =
+        'Suggest a single concise, engaging, and premium title (maximum 6 words) '
+        'for a note with this title suggestion "$title" and this body text:\n\n$body\n\n'
+        'Return ONLY the suggested title, no punctuation quotes, no explanations:';
     return await _callGemini(prompt);
   }
 
+  /// Fix phonetic mispronunciations from voice transcription.
   Future<String> fixMispronunciations(String spokenText) async {
-    final prompt = 'The following text is transcribed from a voice recording and may contain verbal slips, homophone spelling errors, phonetic mispronunciations, or spelling slip-ups. Clean it up, correct homophones, and ensure proper capitalization and syntax. Return ONLY the polished, correct text without notes or comments:\n\n$spokenText';
+    final prompt =
+        'The following text is transcribed from a voice recording and may contain '
+        'verbal slips, homophone spelling errors, phonetic mispronunciations, or '
+        'spelling slip-ups. Clean it up, correct homophones, and ensure proper '
+        'capitalization and syntax. Return ONLY the polished, correct text without '
+        'notes or comments:\n\n$spokenText';
+    return await _callGemini(prompt);
+  }
+
+  /// Reorganize note content into clean bullet points.
+  Future<String> organizeBulletPoints(String text) async {
+    final prompt =
+        'Reorganize the following note content into clean, well-structured bullet '
+        'points. Use markdown bullet syntax (- ). Group related ideas together. '
+        'Preserve all key information but make it scannable. Return ONLY the '
+        'bullet-point version without any introductory remarks:\n\n$text';
+    return await _callGemini(prompt);
+  }
+
+  /// Expand and add more detail to note content.
+  Future<String> expandDetails(String text) async {
+    final prompt =
+        'You are a helpful writing assistant. Expand the following note by adding '
+        'more detail, context, and elaboration to each point. Keep the same tone '
+        'and structure but make it more comprehensive and informative. Return ONLY '
+        'the expanded text without any introductory remarks:\n\n$text';
+    return await _callGemini(prompt);
+  }
+
+  /// Summarize note content into key takeaways.
+  Future<String> summarize(String text) async {
+    final prompt =
+        'Summarize the following note content into its key takeaways. Be concise '
+        'but capture all essential points. Use 2-5 sentences maximum. Return ONLY '
+        'the summary without any introductory remarks:\n\n$text';
+    return await _callGemini(prompt);
+  }
+
+  /// Convert casual text to formal/professional tone.
+  Future<String> makeFormal(String text) async {
+    final prompt =
+        'Rewrite the following note in a formal, professional tone. Maintain all '
+        'the original information and meaning but elevate the language to be '
+        'suitable for professional or academic contexts. Return ONLY the rewritten '
+        'text without any introductory remarks:\n\n$text';
+    return await _callGemini(prompt);
+  }
+
+  /// Run a custom user-provided instruction against note text.
+  Future<String> customPrompt(String text, String instruction) async {
+    final prompt =
+        'You are an AI note assistant. The user has the following note:\n\n'
+        '---\n$text\n---\n\n'
+        'The user\'s instruction: $instruction\n\n'
+        'Apply the instruction to the note and return ONLY the resulting text '
+        'without any introductory remarks, explanations, or commentary:';
     return await _callGemini(prompt);
   }
 }
